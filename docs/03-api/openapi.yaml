@@ -1,0 +1,39 @@
+# OpenAPI Specification
+
+This file contains the OpenAPI (Swagger) specification for the SolFin backend API. This specification defines the RESTful interfaces, data models, and operations that client applications (mobile, web PWA) can use to interact with the SolFin backend.
+
+## Purpose
+
+The OpenAPI specification serves several key purposes:
+
+*   **API Documentation:** Provides comprehensive, interactive documentation for all API endpoints, parameters, and responses.
+*   **Code Generation:** Can be used to automatically generate client SDKs (Software Development Kits) in various programming languages, simplifying integration for frontend developers.
+*   **API Testing:** Facilitates automated API testing by providing a clear contract for expected behavior.
+*   **Design First:** Encourages an API-first development approach, ensuring a well-defined and consistent API before implementation.
+
+## Key Sections of the OpenAPI Specification
+
+A typical OpenAPI specification includes:
+
+*   **`openapi`:** The OpenAPI Specification version (e.g., "3.0.0").
+*   **`info`:** Metadata about the API, including title, description, version, and contact information.
+*   **`servers`:** The base URLs for the API (e.g., development, staging, production).
+*   **`tags`:** Used to group related operations for better organization in documentation.
+*   **`paths`:** Defines the API endpoints (URLs) and the HTTP methods supported for each endpoint (GET, POST, PUT, DELETE, etc.). Each operation includes:
+    *   **`summary` and `description`:** Brief and detailed explanations of the operation.
+    *   **`operationId`:** A unique string used to identify the operation.
+    *   **`parameters`:** Inputs to the operation (path parameters, query parameters, headers, request body).
+    *   **`requestBody`:** The data sent with the request (for POST, PUT, PATCH operations).
+    *   **`responses`:** The possible responses from the operation, including HTTP status codes and response bodies.
+*   **`components`:** Reusable schema definitions for data models (e.g., Account, Transaction, Pouch), request bodies, responses, headers, security schemes, and examples.
+    *   **`schemas`:** Defines the structure of data objects used in requests and responses. This is where the interfaces defined in `@solfin/shared-types` will be reflected for the API.
+    *   **`securitySchemes`:** Defines security mechanisms like JWT tokens (NFR-3).
+*   **`security`:** Specifies the security requirements for the entire API or for specific operations.
+
+## Backend API (Node)
+
+The SolFin backend API will be implemented using Node.js (NestJS or Express, as per Section 4: High-Level Architecture). The OpenAPI specification will serve as the contract that the Node.js API implementation must adhere to.
+
+## Future Development
+
+As the backend API evolves, this OpenAPI specification will be continuously updated to reflect new endpoints, data models, and changes to existing operations.

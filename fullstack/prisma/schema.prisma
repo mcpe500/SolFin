@@ -1,0 +1,194 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts    Account[]
+  pouches     Pouch[]
+  transactions Transaction[]
+  goals       Goal[]
+  sharedPouches SharedPouch[]
+}
+
+model Account {
+  id            String   @id @default(cuid())
+  name          String
+  type          AccountType
+  currency      String   @default("USD")
+  initialBalance Float   @default(0)
+  currentBalance Float   @default(0)
+  isActive      Boolean  @default(true)
+  userId        String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  transfersFrom Transfer[] @relation("TransferFrom")
+  transfersTo   Transfer[] @relation("TransferTo")
+
+  @@map("accounts")
+}
+
+model Pouch {
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  type        PouchType  @default(PRIVATE)
+  balance     Float      @default(0)
+  targetAmount Float?
+  userId      String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  goals        Goal[]
+  sharedPouches SharedPouch[]
+  splits       TransactionSplit[]
+  transfersFrom Transfer[] @relation("TransferFromPouch")
+  transfersTo   Transfer[] @relation("TransferToPouch")
+
+  @@map("pouches")
+}
+
+model Transaction {
+  id          String           @id @default(cuid())
+  amount      Float
+  currency    String           @default("USD")
+  description String?
+  category    String?
+  tags        String?   @default("[]")
+  date        DateTime         @default(now())
+  type        TransactionType
+  isRecurring Boolean          @default(false)
+  recurringPattern String?
+  isAsset     Boolean          @default(false)
+  gpsLocation String?
+  images      String?   @default("[]")
+  isDeleted   Boolean          @default(false)
+  userId      String
+  accountId   String
+  pouchId     String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account    Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  pouch      Pouch?    @relation(fields: [pouchId], references: [id], onDelete: SetNull)
+  splits     TransactionSplit[]
+  transfer   Transfer?
+
+  @@map("transactions")
+}
+
+model TransactionSplit {
+  id            String     @id @default(cuid())
+  amount        Float
+  transactionId String
+  pouchId       String
+  createdAt     DateTime   @default(now())
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  pouch       Pouch      @relation(fields: [pouchId], references: [id], onDelete: Cascade)
+
+  @@map("transaction_splits")
+}
+
+model Transfer {
+  id              String     @id @default(cuid())
+  amount          Float
+  currency        String     @default("USD")
+  description     String?
+  fromAccountId   String
+  toAccountId     String
+  fromPouchId     String?
+  toPouchId       String?
+  transactionId   String     @unique
+  createdAt       DateTime   @default(now())
+
+  fromAccount Account      @relation("TransferFrom", fields: [fromAccountId], references: [id], onDelete: Cascade)
+  toAccount   Account      @relation("TransferTo", fields: [toAccountId], references: [id], onDelete: Cascade)
+  fromPouch   Pouch?       @relation("TransferFromPouch", fields: [fromPouchId], references: [id], onDelete: SetNull)
+  toPouch     Pouch?       @relation("TransferToPouch", fields: [toPouchId], references: [id], onDelete: SetNull)
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@map("transfers")
+}
+
+model Goal {
+  id            String     @id @default(cuid())
+  title         String
+  description   String?
+  targetAmount  Float
+  currentAmount Float      @default(0)
+  targetDate    DateTime
+  monthlyContribution Float
+  isActive      Boolean    @default(true)
+  userId        String
+  pouchId       String
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pouch  Pouch  @relation(fields: [pouchId], references: [id], onDelete: Cascade)
+
+  @@map("goals")
+}
+
+model SharedPouch {
+  id          String          @id @default(cuid())
+  pouchId     String
+  userId      String
+  role        SharedPouchRole
+  createdAt   DateTime        @default(now())
+
+  pouch Pouch @relation(fields: [pouchId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pouchId, userId])
+  @@map("shared_pouches")
+}
+
+enum AccountType {
+  CASH
+  SAVINGS
+  CREDIT
+  LOAN
+  CRYPTO
+  INVESTMENT
+  OTHER
+}
+
+enum PouchType {
+  PRIVATE
+  SHARED
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum SharedPouchRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
