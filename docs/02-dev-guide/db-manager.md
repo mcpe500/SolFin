@@ -55,6 +55,6 @@ A critical architectural rule for SolFin is that **any service layer that needs 
 *   The appropriate `IDatabaseManager` implementation will be provided to the service at runtime, depending on the environment (e.g., `SqliteManager` for the client, `PostgresManager` for the backend).
 *   This promotes testability, modularity, and adherence to the Dependency Inversion Principle.
 
-## Relationship with Backend API
+## Relationship with SolFin Database Service
 
-The `DatabaseManager` service within the backend API (see Section 4: High-Level Architecture) will be responsible for orchestrating interactions with the chosen backend database (MySQL, PostgreSQL, MongoDB).
+The backend API now uses a Repository Pattern to communicate with the dedicated `solfin_database` service. This service handles all database operations through a sharded SQLite cluster with load balancing and read/write separation for learning database scaling concepts.

@@ -4,17 +4,24 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "start": "node server.js",
+    "dev": "bun --watch server.js",
+    "build": "bun install --production"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@sequelize/sqlite3": "^7.0.0-alpha.46",
-    "better-sqlite3": "^12.2.0",
+    "axios": "^1.11.0",
     "dotenv": "^17.2.1",
-    "fastify": "^5.4.0",
-    "sequelize": "^6.37.7",
-    "sequelize-cli": "^6.6.3"
+    "fastify": "^5.4.0"
+  },
+  "devDependencies": {
+    "jest": "^30.0.5",
+    "supertest": "^7.1.4"
+  },
+  "jest": {
+    "testTimeout": 15000
   }
 }

@@ -1,0 +1,37 @@
+help me fix:
+```
+
+D:\Data\VSCode\projectyt\SolFin\backend>bun run dev
+$ bun --watch server.js
+[dotenv@17.2.1] injecting env (0) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[dotenv@17.2.1] injecting env (0) from .env -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
+Failed to build Fastify app: 42 |     options.readWriteMode = dialectOptions && dialectOptions.mode || defaultReadWriteMode;
+43 |     if (this.connections[options.inMemory || options.uuid]) {
+44 |       return this.connections[options.inMemory || options.uuid];
+45 |     }
+46 |     if (!options.inMemory && (options.readWriteMode & this.lib.OPEN_CREATE) !== 0) {
+47 |       fs.mkdirSync(path.dirname(options.storage), { recursive: true });
+              ^
+EEXIST: file already exists, mkdir '..\db'
+    path: "..\\db",
+ syscall: "mkdir",
+   errno: -17,
+    code: "EEXIST"
+
+      at getConnection (D:\Data\VSCode\projectyt\SolFin\backend\node_modules\sequelize\lib\dialects\sqlite\connection-manager.js:47:10)
+      at getConnection (D:\Data\VSCode\projectyt\SolFin\backend\node_modules\sequelize\lib\dialects\sqlite\connection-manager.js:31:23)
+      at <anonymous> (D:\Data\VSCode\projectyt\SolFin\backend\node_modules\sequelize\lib\sequelize.js:305:111)
+      at <anonymous> (D:\Data\VSCode\projectyt\SolFin\backend\node_modules\sequelize\lib\sequelize.js:300:30)
+      at <anonymous> (D:\Data\VSCode\projectyt\SolFin\backend\node_modules\retry-as-promised\dist\index.js:65:25)
+      at new Promise (1:11)
+      at retryAsPromised (D:\Data\VSCode\projectyt\SolFin\backend\node_modules\retry-as-promised\dist\index.js:54:12)
+      at query (D:\Data\VSCode\projectyt\SolFin\backend\node_modules\sequelize\lib\sequelize.js:237:15)
+      at authenticate (D:\Data\VSCode\projectyt\SolFin\backend\node_modules\sequelize\lib\sequelize.js:457:16)
+      at authenticate (D:\Data\VSCode\projectyt\SolFin\backend\node_modules\sequelize\lib\sequelize.js:451:22)
+      at <anonymous> (D:\Data\VSCode\projectyt\SolFin\backend\server.js:22:22)
+      at buildFastify (D:\Data\VSCode\projectyt\SolFin\backend\server.js:4:22)
+      at <anonymous> (D:\Data\VSCode\projectyt\SolFin\backend\server.js:33:3)
+
+error: script "dev" exited with code 1
+```
+@/backend/models/index.js , @/backend/server.js , 

@@ -109,9 +109,15 @@ NFR-5  Accessibility
            │ Sync / REST
 ┌──────────┴─────────────────┐
 │  Backend API (Node)        │
-│  DatabaseManager Service   │
-│  Choice of DB: MySQL/…    │
+│  Repository Pattern        │
 │  Gemini-Flash Service      │
+└──────────┬─────────────────┘
+           │ HTTP/REST
+┌──────────┴─────────────────┐
+│  SolFin Database Service   │
+│  Sharded SQLite Cluster    │
+│  Load Balancer             │
+│  Read/Write Separation     │
 └────────────────────────────┘
 
 5. DATABASE MANAGER SPEC
@@ -150,6 +156,10 @@ Any service layer that needs DB access must accept an instance of IDatabaseManag
 solfin/
 ├── backend/
 │   ├── api/              # NestJS or Express
+├── solfin_database/
+│   ├── shards/           # Multiple SQLite databases
+│   ├── load-balancer/    # Read/Write distribution
+│   ├── api/              # Database service API
 │   └── ai-service/       # Gemini-Flash wrapper
 ├── docs/                 # ← start here
 │   ├── README.md
