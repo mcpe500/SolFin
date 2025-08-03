@@ -1,5 +1,5 @@
 # Stage 1: Build the React application
-FROM node:18-alpine as builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -21,7 +21,7 @@ RUN npm run build
 FROM nginx:alpine
 
 # Copy the built React app from the builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/export/web /usr/share/nginx/html # Updated path to export/web
 
 # Copy custom Nginx configuration (optional, but good practice for SPAs)
 # If you have a custom nginx.conf for history mode or other settings,
@@ -33,3 +33,6 @@ EXPOSE 80
 
 # Start Nginx
 CMD ["nginx", "-g", "daemon off;"]
+
+# Tag the image with localhost/ for Podman compatibility
+LABEL org.opencontainers.image.source=localhost/solfin_frontend

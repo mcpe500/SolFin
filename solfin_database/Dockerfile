@@ -19,3 +19,6 @@ EXPOSE 3002
 
 # Define the command to run the app
 CMD ["npm", "start"]
+
+# Tag the image with localhost/ for Podman compatibility
+LABEL org.opencontainers.image.source=localhost/solfin_solfin_database

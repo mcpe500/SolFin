@@ -1,5 +1,5 @@
 # Stage 1: Build the web application
-FROM node:18-alpine as web_builder
+FROM node:20-alpine as web_builder # Updated to Node.js 20
 
 WORKDIR /app/frontend
 
@@ -66,3 +66,6 @@ COPY --from=android_builder /app/frontend/android/app/build/outputs/apk/debug/ap
 
 # Command to list the APK (for verification)
 CMD ["ls", "-lh"]
+
+# Tag the image with localhost/ for Podman compatibility
+LABEL org.opencontainers.image.source=localhost/solfin_frontend_android

@@ -5,6 +5,7 @@ services:
     build:
       context: ./solfin_database
       dockerfile: Dockerfile
+    image: localhost/solfin_solfin_database:latest # Explicitly tag local image
     container_name: solfin_database
     ports:
       - "3002:3002"
@@ -19,6 +20,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: localhost/solfin_backend:latest # Explicitly tag local image
     container_name: solfin_backend
     ports:
       - "3001:3001"
@@ -34,6 +36,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    image: localhost/solfin_frontend:latest # Explicitly tag local image
     container_name: solfin_frontend
     ports:
       - "80:80"
