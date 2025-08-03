@@ -81,9 +81,9 @@ export const getSearchedSchedule = createSelector(
       return schedule;
     }
     const groups: ScheduleGroup[] = [];
-    schedule.groups.forEach((group) => {
+    schedule.groups.forEach((group: ScheduleGroup) => {
       const sessions = group.sessions.filter(
-        (s) => s.name.toLowerCase().indexOf(searchText.toLowerCase()) > -1
+        (s: Session) => s.name.toLowerCase().indexOf(searchText.toLowerCase()) > -1
       );
       if (sessions.length) {
         const groupToAdd: ScheduleGroup = {
@@ -110,9 +110,9 @@ export const getGroupedFavorites = createSelector(
   getFavoriteIds,
   (schedule, favoriteIds) => {
     const groups: ScheduleGroup[] = [];
-    schedule.groups.forEach((group) => {
+    schedule.groups.forEach((group: ScheduleGroup) => {
       const sessions = group.sessions.filter(
-        (s) => favoriteIds.indexOf(s.id) > -1
+        (s: Session) => favoriteIds.indexOf(s.id.toString()) > -1
       );
       if (sessions.length) {
         const groupToAdd: ScheduleGroup = {
