@@ -8,14 +8,14 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 
 # Install dependencies
-RUN npm install --frozen-lockfile
+RUN bun install --frozen-lockfile
 
 # Copy the rest of the application code
 COPY . .
 
 # Build the React application
 # This will create the production-ready static files in the 'dist' folder
-RUN npm run build
+RUN bun run build
 
 # Stage 2: Serve the application with Nginx
 FROM nginx:alpine
