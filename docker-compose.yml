@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  solfin_database:
+    build:
+      context: ./solfin_database
+      dockerfile: Dockerfile
+    container_name: solfin_database
+    ports:
+      - "3002:3002"
+    volumes:
+      - solfin_db_data:/app/shards # Persist SQLite database files
+    environment:
+      - DB_PORT=3002
+      - DB_HOST=0.0.0.0
+    restart: always
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: solfin_backend
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - DATABASE_SERVICE_URL=http://solfin_database:3002 # Link to the database service
+      - JWT_SECRET=your_super_secret_jwt_key # Replace with a strong secret in production
+    depends_on:
+      - solfin_database
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: solfin_frontend
+    ports:
+      - "80:80"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:3001 # Point to backend service
+    depends_on:
+      - backend
+    restart: always
+
+volumes:
+  solfin_db_data:

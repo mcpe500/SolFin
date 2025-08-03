@@ -39,7 +39,12 @@
     "preview": "vite preview",
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json,md}\"",
     "precommit": "npm run format && lint-staged",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "cap:sync:android": "npx cap sync android",
+    "cap:build:android": "cd android && ./gradlew assembleDebug",
+    "android:export": "npm run build && npm run cap:sync:android && npm run cap:build:android && mkdir -p ../export/android && cp android/app/build/outputs/apk/debug/app-debug.apk ../export/android/",
+    "android:docker-build": "docker build -f Dockerfile.android -t ionic-android-builder .",
+    "android:docker-run": "docker run --rm -v ${PWD}/export/android:/app/frontend/export/android ionic-android-builder"
   },
   "eslintConfig": {
     "extends": "react-app"

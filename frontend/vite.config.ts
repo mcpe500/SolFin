@@ -11,6 +11,9 @@ export default defineConfig({
     'process.env': process.env,
     __HMR_CONFIG_NAME__: JSON.stringify('vite')
   },
+  build: {
+    outDir: 'export/web' // Set the output directory to export/web
+  },
   css: {
     preprocessorOptions: {
       scss: {

@@ -1,0 +1,68 @@
+# Stage 1: Build the web application
+FROM node:18-alpine as web_builder
+
+WORKDIR /app/frontend
+
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm install
+
+COPY frontend .
+RUN npm run build
+
+# Stage 2: Android build environment
+FROM openjdk:11-jdk-slim as android_builder
+
+WORKDIR /app/frontend
+
+# Install Android SDK and build tools
+ENV ANDROID_SDK_ROOT=/opt/android-sdk
+ENV PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
+ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+ENV GRADLE_HOME=/opt/gradle
+
+RUN apt-get update && apt-get install -y \
+    unzip \
+    git \
+    wget \
+    openjdk-11-jdk \
+    android-sdk \
+    gradle \
+    --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/*
+
+# Download Android command-line tools
+RUN mkdir -p $ANDROID_SDK_ROOT/cmdline-tools && \
+    wget -q https://dl.google.com/android/repository/commandlinetools-linux-8583075_latest.zip -O /tmp/cmdline-tools.zip && \
+    unzip -q /tmp/cmdline-tools.zip -d $ANDROID_SDK_ROOT/cmdline-tools && \
+    rm /tmp/cmdline-tools.zip
+
+# Accept Android SDK licenses
+RUN yes | sdkmanager --licenses
+
+# Install specific Android SDK versions and build tools
+RUN sdkmanager "platforms;android-33" "build-tools;33.0.0" "cmdline-tools;latest" "platform-tools"
+
+# Copy the built web app from the first stage
+COPY --from=web_builder /app/frontend/export/web ./export/web
+
+# Copy the rest of the frontend project (including android folder)
+COPY frontend .
+
+# Ensure gradle wrapper is executable
+RUN chmod +x ./android/gradlew
+
+# Build the Android project
+# This assumes you have already run 'npx cap add android' locally and committed the 'android' folder
+RUN npx cap sync android
+RUN cd android && ./gradlew assembleDebug
+
+# Stage 3: Extract the APK
+FROM alpine as apk_extractor
+
+WORKDIR /app
+
+# Copy the built APK from the android_builder stage
+COPY --from=android_builder /app/frontend/android/app/build/outputs/apk/debug/app-debug.apk ./
+
+# Command to list the APK (for verification)
+CMD ["ls", "-lh"]

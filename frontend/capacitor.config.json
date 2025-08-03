@@ -3,6 +3,6 @@
   "appName": "ionic-react-conference-app",
   "bundledWebRuntime": false,
   "npmClient": "npm",
-  "webDir": "dist",
+  "webDir": "export/web",
   "cordova": {}
 }
