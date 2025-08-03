@@ -1,5 +1,5 @@
-# Stage 1: Build the React application
-FROM node:20-alpine AS builder
+# Use an official Bun image as a parent image
+FROM oven/bun:latest AS builder
 
 WORKDIR /app
 
@@ -8,14 +8,14 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 
 # Install dependencies
-RUN bun install
+RUN npm install --frozen-lockfile
 
 # Copy the rest of the application code
 COPY . .
 
 # Build the React application
 # This will create the production-ready static files in the 'dist' folder
-RUN bun run build
+RUN npm run build
 
 # Stage 2: Serve the application with Nginx
 FROM nginx:alpine
