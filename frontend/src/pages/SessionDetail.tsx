@@ -13,42 +13,29 @@ import {
   IonItem,
   IonLabel,
 } from '@ionic/react';
-import { connect } from '../data/connect';
-import { withRouter, RouteComponentProps } from 'react-router';
-import * as selectors from '../data/selectors';
+import { useDispatch, useSelector } from 'react-redux';
+import { RouteComponentProps } from 'react-router';
 import { starOutline, star, share, cloudDownload } from 'ionicons/icons';
 import './SessionDetail.scss';
-import { addFavorite, removeFavorite } from '../data/sessions/sessions.actions';
+import { addFavorite, removeFavorite, getSessionById } from '../data/sessions/sessionsSlice'; // Import getSessionById selector
 import { Session } from '../models/Schedule';
+import { AppDispatch, RootState } from '../store'; // Import RootState and AppDispatch
 
-interface OwnProps extends RouteComponentProps {}
+interface SessionDetailProps extends RouteComponentProps<{ id: string }> {}
 
-interface StateProps {
-  session?: Session;
-  favoriteSessions: number[];
-}
+const SessionDetail: React.FC<SessionDetailProps> = ({ match }) => {
+  const dispatch: AppDispatch = useDispatch();
+  const session = useSelector((state: RootState) => getSessionById(state, match.params.id));
+  const favoriteSessions = useSelector((state: RootState) => state.sessions.favorites);
 
-interface DispatchProps {
-  addFavorite: typeof addFavorite;
-  removeFavorite: typeof removeFavorite;
-}
-
-type SessionDetailProps = OwnProps & StateProps & DispatchProps;
-
-const SessionDetail: React.FC<SessionDetailProps> = ({
-  session,
-  addFavorite,
-  removeFavorite,
-  favoriteSessions,
-}) => {
   if (!session) {
     return <div>Session not found</div>;
   }
 
-  const isFavorite = favoriteSessions.indexOf(session.id) > -1;
+  const isFavorite = favoriteSessions.includes(session.id.toString());
 
   const toggleFavorite = () => {
-    isFavorite ? removeFavorite(session.id) : addFavorite(session.id);
+    isFavorite ? dispatch(removeFavorite(session.id.toString())) : dispatch(addFavorite(session.id.toString()));
   };
   const shareSession = () => {};
   const sessionClick = (text: string) => {
@@ -79,7 +66,7 @@ const SessionDetail: React.FC<SessionDetailProps> = ({
       <IonContent>
         <div className="ion-padding">
           <h1>{session.name}</h1>
-          {session.tracks.map((track) => (
+          {session.tracks.map((track: string) => (
             <span
               key={track}
               className={`session-track-${track.toLowerCase()}`}
@@ -122,14 +109,4 @@ const SessionDetail: React.FC<SessionDetailProps> = ({
   );
 };
 
-export default connect<OwnProps, StateProps, DispatchProps>({
-  mapStateToProps: (state, ownProps) => ({
-    session: selectors.getSession(state, ownProps),
-    favoriteSessions: state.data.favorites
-  }),
-  mapDispatchToProps: {
-    addFavorite,
-    removeFavorite,
-  },
-  component: withRouter(SessionDetail),
-});
+export default SessionDetail;

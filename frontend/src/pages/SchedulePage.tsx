@@ -1,5 +1,4 @@
-import React, { useState, useRef } from 'react';
-
+import React, { useState, useRef, useEffect } from 'react';
 import {
   IonToolbar,
   IonContent,
@@ -27,31 +26,17 @@ import './SchedulePage.scss';
 
 import ShareSocialFab from '../components/ShareSocialFab';
 
-import * as selectors from '../data/selectors';
-import { connect } from '../data/connect';
-import { setSearchText } from '../data/sessions/sessions.actions';
-import { Schedule } from '../models/Schedule';
+import { useDispatch, useSelector } from 'react-redux';
+import { setSearchText, loadConfData, getGroupedSchedule, getGroupedFavorites } from '../data/sessions/sessionsSlice';
+import { AppDispatch, RootState } from '../store';
+import { Schedule } from '../models/Schedule'; // Assuming Schedule is still needed for typing
 
-interface OwnProps {}
+const SchedulePage: React.FC = () => {
+  const dispatch: AppDispatch = useDispatch();
+  const schedule = useSelector(getGroupedSchedule);
+  const favoritesSchedule = useSelector(getGroupedFavorites);
+  const mode = getConfig()!.get('mode');
 
-interface StateProps {
-  schedule: Schedule;
-  favoritesSchedule: Schedule;
-  mode: 'ios' | 'md';
-}
-
-interface DispatchProps {
-  setSearchText: typeof setSearchText;
-}
-
-type SchedulePageProps = OwnProps & StateProps & DispatchProps;
-
-const SchedulePage: React.FC<SchedulePageProps> = ({
-  favoritesSchedule,
-  schedule,
-  setSearchText,
-  mode,
-}) => {
   const [segment, setSegment] = useState<'all' | 'favorites'>('all');
   const [showSearchbar, setShowSearchbar] = useState<boolean>(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -62,11 +47,22 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
 
   const ios = mode === 'ios';
 
+  useEffect(() => {
+    // Load conference data when the component mounts
+    dispatch(loadConfData());
+  }, [dispatch]);
+
   const doRefresh = () => {
+    // Re-dispatch loadConfData to refresh data
+    dispatch(loadConfData());
     setTimeout(() => {
       ionRefresherRef.current!.complete();
       setShowCompleteToast(true);
     }, 2500);
+  };
+
+  const handleSearchbarInput = (e: CustomEvent) => {
+    dispatch(setSearchText(e.detail.value));
   };
 
   return (
@@ -92,7 +88,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
             <IonSearchbar
               showCancelButton="always"
               placeholder="Search"
-              onIonInput={(e: CustomEvent) => setSearchText(e.detail.value)}
+              onIonInput={handleSearchbarInput}
               onIonCancel={() => setShowSearchbar(false)}
             ></IonSearchbar>
           )}
@@ -136,7 +132,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
           <IonToolbar>
             <IonSearchbar
               placeholder="Search"
-              onIonInput={(e: CustomEvent) => setSearchText(e.detail.value)}
+              onIonInput={handleSearchbarInput}
             ></IonSearchbar>
           </IonToolbar>
         </IonHeader>
@@ -181,14 +177,4 @@ const SchedulePage: React.FC<SchedulePageProps> = ({
   );
 };
 
-export default connect<OwnProps, StateProps, DispatchProps>({
-  mapStateToProps: (state) => ({
-    schedule: selectors.getSearchedSchedule(state),
-    favoritesSchedule: selectors.getGroupedFavorites(state),
-    mode: getConfig()!.get('mode'),
-  }),
-  mapDispatchToProps: {
-    setSearchText,
-  },
-  component: React.memo(SchedulePage),
-});
+export default SchedulePage;

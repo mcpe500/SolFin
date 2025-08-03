@@ -7,6 +7,7 @@ import {
   setupIonicReact,
 } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
+import { useSelector, useDispatch } from 'react-redux';
 
 import Menu from './components/Menu';
 
@@ -46,14 +47,12 @@ import 'leaflet/dist/leaflet.css';
 /* Global styles */
 import './App.scss';
 import MainTabs from './pages/MainTabs';
-import { connect } from './data/connect';
-import { AppContextProvider } from './data/AppContext';
-import { loadConfData } from './data/sessions/sessions.actions';
+import { loadConfData } from './data/sessions/sessionsSlice'; // Import from sessionsSlice
 import {
   setIsLoggedIn,
   setUsername,
   loadUserData,
-} from './data/user/user.actions';
+} from './data/user/userSlice'; // Import from userSlice
 import Account from './pages/Account';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -62,48 +61,33 @@ import Tutorial from './pages/Tutorial';
 import HomeOrTutorial from './components/HomeOrTutorial';
 import { Schedule } from './models/Schedule';
 import RedirectToLogin from './components/RedirectToLogin';
+import { RootState, AppDispatch } from './store'; // Import RootState and AppDispatch
 
 setupIonicReact();
 
+/**
+ * @component App
+ * @description The root component of the Ionic React application.
+ * It sets up Ionic React, configures routing, and initializes global state.
+ * It also handles dark mode and initial data loading.
+ */
 const App: React.FC = () => {
-  return (
-    <AppContextProvider>
-      <IonicAppConnected />
-    </AppContextProvider>
-  );
-};
+  const dispatch: AppDispatch = useDispatch();
+  const darkMode = useSelector((state: RootState) => state.user.darkMode);
+  const loadingConfData = useSelector((state: RootState) => state.sessions.loading);
 
-interface StateProps {
-  darkMode: boolean;
-  schedule: Schedule;
-}
-
-interface DispatchProps {
-  loadConfData: typeof loadConfData;
-  loadUserData: typeof loadUserData;
-  setIsLoggedIn: typeof setIsLoggedIn;
-  setUsername: typeof setUsername;
-}
-
-interface IonicAppProps extends StateProps, DispatchProps {}
-
-const IonicApp: React.FC<IonicAppProps> = ({
-  darkMode,
-  schedule,
-  setIsLoggedIn,
-  setUsername,
-  loadConfData,
-  loadUserData,
-}) => {
   useEffect(() => {
-    loadUserData();
-    loadConfData();
+    dispatch(loadUserData());
+    dispatch(loadConfData());
     // eslint-disable-next-line
-  }, []);
+  }, [dispatch]);
 
-  return schedule.groups.length === 0 ? (
-    <div></div>
-  ) : (
+  // Render a loading indicator or null while data is loading
+  if (loadingConfData) {
+    return <div>Loading...</div>; // Or a proper spinner/skeleton loader
+  }
+
+  return (
     <IonApp className={`${darkMode ? 'ion-palette-dark' : ''}`}>
       <IonReactRouter>
         <IonSplitPane contentId="main">
@@ -123,10 +107,7 @@ const IonicApp: React.FC<IonicAppProps> = ({
               path="/logout"
               render={() => {
                 return (
-                  <RedirectToLogin
-                    setIsLoggedIn={setIsLoggedIn}
-                    setUsername={setUsername}
-                  />
+                  <RedirectToLogin />
                 );
               }}
             />
@@ -139,17 +120,3 @@ const IonicApp: React.FC<IonicAppProps> = ({
 };
 
 export default App;
-
-const IonicAppConnected = connect<{}, StateProps, DispatchProps>({
-  mapStateToProps: (state) => ({
-    darkMode: state.user.darkMode,
-    schedule: state.data.schedule,
-  }),
-  mapDispatchToProps: {
-    loadConfData,
-    loadUserData,
-    setIsLoggedIn,
-    setUsername,
-  },
-  component: IonicApp,
-});

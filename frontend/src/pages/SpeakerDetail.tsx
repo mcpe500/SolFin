@@ -27,22 +27,17 @@ import {
   shareSharp,
 } from 'ionicons/icons';
 
-import { connect } from '../data/connect';
-import * as selectors from '../data/selectors';
-
+import { useSelector } from 'react-redux';
+import { getSpeakers } from '../data/sessions/sessionsSlice'; // Assuming Speaker data is in sessionsSlice
 import { Speaker } from '../models/Speaker';
+import { RootState } from '../store';
 
-interface OwnProps extends RouteComponentProps {
-  speaker?: Speaker;
-}
+interface SpeakerDetailProps extends RouteComponentProps<{ id: string }> {}
 
-interface StateProps {}
+const SpeakerDetail: React.FC<SpeakerDetailProps> = ({ match }) => {
+  const speakers = useSelector((state: RootState) => getSpeakers(state));
+  const speaker = speakers.find(s => s.id.toString() === match.params.id);
 
-interface DispatchProps {}
-
-interface SpeakerDetailProps extends OwnProps, StateProps, DispatchProps {}
-
-const SpeakerDetail: React.FC<SpeakerDetailProps> = ({ speaker }) => {
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [actionSheetButtons, setActionSheetButtons] = useState<
     ActionSheetButton[]
@@ -180,9 +175,4 @@ const SpeakerDetail: React.FC<SpeakerDetailProps> = ({ speaker }) => {
   );
 };
 
-export default connect({
-  mapStateToProps: (state, ownProps) => ({
-    speaker: selectors.getSpeaker(state, ownProps),
-  }),
-  component: SpeakerDetail,
-});
+export default SpeakerDetail;

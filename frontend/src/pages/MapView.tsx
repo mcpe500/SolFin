@@ -8,8 +8,9 @@ import {
   useIonViewDidEnter,
 } from '@ionic/react';
 import { Location } from '../models/Location';
-import { connect } from '../data/connect';
-import { loadLocations } from '../data/locations/locations.actions';
+import { useDispatch, useSelector } from 'react-redux';
+import { loadLocations } from '../data/locations/locationsSlice';
+import { RootState, AppDispatch } from '../store';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import markerIconUrl from "leaflet/dist/images/marker-icon.png";
@@ -23,26 +24,17 @@ L.Icon.Default.prototype.options.iconRetinaUrl = markerIconRetinaUrl;
 L.Icon.Default.prototype.options.shadowUrl = markerShadowUrl;
 L.Icon.Default.imagePath = "";
 
-interface StateProps {
-  locations: Location[];
-}
-
-interface DispatchProps {
-  loadLocations: typeof loadLocations;
-}
-
-const MapView: React.FC<StateProps & DispatchProps> = ({
-  locations,
-  loadLocations,
-}) => {
+const MapView: React.FC = () => {
+  const dispatch: AppDispatch = useDispatch();
+  const locations = useSelector((state: RootState) => state.locations.locations);
   const mapCanvas = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const markers = useRef<L.Marker[]>([]);
 
   // Add useEffect to load locations when component mounts
   useEffect(() => {
-    loadLocations();
-  }, []);
+    dispatch(loadLocations());
+  }, [dispatch]);
 
   const initMap = () => {
     if (!locations?.length || !mapCanvas.current || map.current) return;
@@ -118,12 +110,4 @@ const MapView: React.FC<StateProps & DispatchProps> = ({
   );
 };
 
-export default connect<{}, StateProps, DispatchProps>({
-  mapStateToProps: (state) => ({
-    locations: state.locations.locations,
-  }),
-  mapDispatchToProps: {
-    loadLocations,
-  },
-  component: MapView,
-});
+export default MapView;

@@ -1,12 +1,11 @@
 import React from 'react';
-import { connect } from '../data/connect';
 import { Redirect } from 'react-router';
+import { useSelector } from 'react-redux';
+import { RootState } from '../store';
 
-interface StateProps {
-  hasSeenTutorial: boolean;
-}
+const HomeOrTutorial: React.FC = () => {
+  const hasSeenTutorial = useSelector((state: RootState) => state.user.hasSeenTutorial);
 
-const HomeOrTutorial: React.FC<StateProps> = ({ hasSeenTutorial }) => {
   return hasSeenTutorial ? (
     <Redirect to="/tabs/schedule" />
   ) : (
@@ -14,9 +13,4 @@ const HomeOrTutorial: React.FC<StateProps> = ({ hasSeenTutorial }) => {
   );
 };
 
-export default connect<{}, StateProps, {}>({
-  mapStateToProps: (state) => ({
-    hasSeenTutorial: state.user.hasSeenTutorial,
-  }),
-  component: HomeOrTutorial,
-});
+export default HomeOrTutorial;

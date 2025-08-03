@@ -12,27 +12,24 @@ import {
   IonAlert,
 } from '@ionic/react';
 import './Account.scss';
-import { setUsername } from '../data/user/user.actions';
-import { connect } from '../data/connect';
+import { useDispatch, useSelector } from 'react-redux';
+import { setUsername } from '../data/user/userSlice';
+import { RootState, AppDispatch } from '../store';
 import { RouteComponentProps } from 'react-router';
 
-interface OwnProps extends RouteComponentProps {}
+interface AccountProps extends RouteComponentProps {}
 
-interface StateProps {
-  username?: string;
-}
-
-interface DispatchProps {
-  setUsername: typeof setUsername;
-}
-
-interface AccountProps extends OwnProps, StateProps, DispatchProps {}
-
-const Account: React.FC<AccountProps> = ({ setUsername, username }) => {
+const Account: React.FC<AccountProps> = () => {
+  const dispatch: AppDispatch = useDispatch();
+  const username = useSelector((state: RootState) => state.user.username);
   const [showAlert, setShowAlert] = useState(false);
 
   const clicked = (text: string) => {
     console.log(`Clicked ${text}`);
+  };
+
+  const handleSetUsername = (data: any) => {
+    dispatch(setUsername(data.username));
   };
 
   return (
@@ -81,7 +78,7 @@ const Account: React.FC<AccountProps> = ({ setUsername, username }) => {
           {
             text: 'Ok',
             handler: (data) => {
-              setUsername(data.username);
+              handleSetUsername(data);
             },
           },
         ]}
@@ -99,12 +96,4 @@ const Account: React.FC<AccountProps> = ({ setUsername, username }) => {
   );
 };
 
-export default connect<OwnProps, StateProps, DispatchProps>({
-  mapStateToProps: (state) => ({
-    username: state.user.username,
-  }),
-  mapDispatchToProps: {
-    setUsername,
-  },
-  component: Account,
-});
+export default Account;

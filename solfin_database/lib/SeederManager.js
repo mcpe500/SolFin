@@ -1,14 +1,26 @@
 const fs = require('fs');
 const path = require('path');
 
+/**
+ * Manages database seeding operations for sharded SQLite databases.
+ * It ensures a seeder tracking table exists in each shard,
+ * tracks executed seeders, and runs data population scripts.
+ */
 class SeederManager {
+  /**
+   * Creates an instance of SeederManager.
+   * @param {import('./ShardManager')} shardManager - The ShardManager instance to interact with database shards.
+   */
   constructor(shardManager) {
     this.shardManager = shardManager;
     this.seedersPath = path.join(__dirname, '../seeders');
     this.ensureSeedersTable();
   }
 
-  // Ensure seeders tracking table exists in each shard
+  /**
+   * Ensures that the 'seeders' tracking table exists in all configured database shards.
+   * This table is used to keep track of which seeders have been executed on each shard.
+   */
   ensureSeedersTable() {
     const seederTableSQL = `
       CREATE TABLE IF NOT EXISTS seeders (
@@ -30,20 +42,32 @@ class SeederManager {
     }
   }
 
-  // Get executed seeders for a shard
+  /**
+   * Retrieves a list of executed seeder names for a specific shard.
+   * @param {string} shardName - The name of the shard.
+   * @returns {Array<string>} An array of seeder names that have been executed on the shard.
+   */
   getExecutedSeeders(shardName) {
     const db = this.shardManager.getReadConnection(shardName);
     const seeders = db.prepare('SELECT name FROM seeders ORDER BY executed_at').all();
     return seeders.map(s => s.name);
   }
 
-  // Record seeder execution
+  /**
+   * Records a successfully executed seeder in the 'seeders' table for a given shard.
+   * @param {string} shardName - The name of the shard where the seeder was executed.
+   * @param {string} name - The name of the seeder file/module.
+   */
   recordSeeder(shardName, name) {
     const db = this.shardManager.getWriteConnection(shardName);
     db.prepare('INSERT INTO seeders (name) VALUES (?)').run(name);
   }
 
-  // Get available seeder files
+  /**
+   * Retrieves a list of available seeder files from the seeders directory.
+   * Seeder files are expected to be JavaScript files.
+   * @returns {Array<object>} An array of available seeder objects, each containing name and file path.
+   */
   getAvailableSeeders() {
     if (!fs.existsSync(this.seedersPath)) {
       fs.mkdirSync(this.seedersPath, { recursive: true });
@@ -59,7 +83,14 @@ class SeederManager {
       });
   }
 
-  // Run specific seeder for a shard
+  /**
+   * Runs a specific seeder for a given shard.
+   * The seeder will only run if it hasn't been executed before on that shard.
+   * @param {string} shardName - The name of the shard to run the seeder on.
+   * @param {string} seederName - The name of the seeder to run.
+   * @returns {Promise<void>} A promise that resolves when the seeder has been attempted.
+   * @throws {Error} If the seeder file is not found or if the seeder fails during execution.
+   */
   async runSeeder(shardName, seederName) {
     const executedSeeders = this.getExecutedSeeders(shardName);
     
@@ -102,7 +133,12 @@ class SeederManager {
     }
   }
 
-  // Run all pending seeders for a specific shard
+  /**
+   * Runs all pending seeders for a specific shard.
+   * Only seeders that have not yet been recorded as executed for the shard will be run.
+   * @param {string} shardName - The name of the shard to run seeders for.
+   * @returns {Promise<void>} A promise that resolves when all pending seeders for the shard have been attempted.
+   */
   async runSeeders(shardName) {
     const executedSeeders = this.getExecutedSeeders(shardName);
     const availableSeeders = this.getAvailableSeeders();
@@ -118,14 +154,23 @@ class SeederManager {
     }
   }
 
-  // Run seeders for all shards
+  /**
+   * Runs all pending seeders across all configured shards.
+   * @returns {Promise<void>} A promise that resolves when all seeders for all shards have been attempted.
+   */
   async runAllSeeders() {
     for (const shardName of this.shardManager.shards.keys()) {
       await this.runSeeders(shardName);
     }
   }
 
-  // Reset seeders for a shard (remove all seeder records)
+  /**
+   * Resets the seeders for a specific shard by removing all seeder records from its tracking table.
+   * This effectively marks all seeders as unexecuted for that shard.
+   * @param {string} shardName - The name of the shard to reset seeders for.
+   * @returns {Promise<void>} A promise that resolves when the seeders have been reset.
+   * @throws {Error} If the reset operation fails.
+   */
   async resetSeeders(shardName) {
     try {
       const db = this.shardManager.getWriteConnection(shardName);
@@ -137,13 +182,20 @@ class SeederManager {
     }
   }
 
-  // Reset and re-run all seeders for a shard
+  /**
+   * Resets and then re-runs all seeders for a specific shard.
+   * @param {string} shardName - The name of the shard to refresh seeders for.
+   * @returns {Promise<void>} A promise that resolves when the seeders have been refreshed.
+   */
   async refreshSeeders(shardName) {
     await this.resetSeeders(shardName);
     await this.runSeeders(shardName);
   }
 
-  // Get seeder status
+  /**
+   * Retrieves the current seeder status for all shards.
+   * @returns {object} An object where keys are shard names and values are their seeder status (executed, pending, total, executedList, pendingList).
+   */
   getSeederStatus() {
     const status = {};
     const availableSeeders = this.getAvailableSeeders();

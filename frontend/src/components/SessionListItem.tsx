@@ -13,8 +13,8 @@ import { Session } from '../models/Schedule';
 interface SessionListItemProps {
   session: Session;
   listType: 'all' | 'favorites';
-  onAddFavorite: (id: number) => void;
-  onRemoveFavorite: (id: number) => void;
+  onAddFavorite: (id: string) => void; // Changed to string
+  onRemoveFavorite: (id: string) => void; // Changed to string
   onShowAlert: (
     header: string,
     message: string,
@@ -39,7 +39,6 @@ const SessionListItem: React.FC<SessionListItemProps> = ({
   };
 
   const removeFavoriteSession = (title: string) => {
-    onAddFavorite(session.id);
     onShowAlert(
       title,
       'Would you like to remove this session from your favorites?',
@@ -51,7 +50,7 @@ const SessionListItem: React.FC<SessionListItemProps> = ({
         {
           text: 'Remove',
           handler: () => {
-            onRemoveFavorite(session.id);
+            onRemoveFavorite(session.id.toString()); // Convert to string
             dismissAlert();
           },
         },
@@ -65,7 +64,7 @@ const SessionListItem: React.FC<SessionListItemProps> = ({
       removeFavoriteSession('Favorite already added');
     } else {
       // Add as a favorite
-      onAddFavorite(session.id);
+      onAddFavorite(session.id.toString()); // Convert to string
 
       // Close the open item
       ionItemSlidingRef.current && ionItemSlidingRef.current.close();
@@ -104,11 +103,16 @@ const SessionListItem: React.FC<SessionListItemProps> = ({
           <IonItemOption
             color="danger"
             onClick={() => removeFavoriteSession('Remove Favorite')}
+            aria-label="Remove from favorites" // Added aria-label
           >
             Remove
           </IonItemOption>
         ) : (
-          <IonItemOption color="favorite" onClick={addFavoriteSession}>
+          <IonItemOption
+            color="favorite"
+            onClick={addFavoriteSession}
+            aria-label="Add to favorites" // Added aria-label
+          >
             Favorite
           </IonItemOption>
         )}

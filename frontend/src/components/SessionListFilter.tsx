@@ -31,46 +31,37 @@ import {
 
 import './SessionListFilter.css';
 
-import { connect } from '../data/connect';
-import { updateFilteredTracks } from '../data/sessions/sessions.actions';
+import { useDispatch, useSelector } from 'react-redux';
+import { updateFilteredTracks } from '../data/sessions/sessionsSlice';
+import { RootState } from '../store';
 
 interface OwnProps {
   onDismissModal: () => void;
 }
 
-interface StateProps {
-  allTracks: string[];
-  filteredTracks: string[];
-}
-
-interface DispatchProps {
-  updateFilteredTracks: typeof updateFilteredTracks;
-}
-
-type SessionListFilterProps = OwnProps & StateProps & DispatchProps;
-
-const SessionListFilter: React.FC<SessionListFilterProps> = ({
-  allTracks,
-  filteredTracks,
+const SessionListFilter: React.FC<OwnProps> = ({
   onDismissModal,
-  updateFilteredTracks,
 }) => {
+  const dispatch = useDispatch();
+  const allTracks = useSelector((state: RootState) => state.sessions.allTracks);
+  const filteredTracks = useSelector((state: RootState) => state.sessions.filteredTracks);
+
   const ios = getMode() === 'ios';
 
   const toggleTrackFilter = (track: string) => {
     if (filteredTracks.indexOf(track) > -1) {
-      updateFilteredTracks(filteredTracks.filter((x) => x !== track));
+      dispatch(updateFilteredTracks(filteredTracks.filter((x) => x !== track)));
     } else {
-      updateFilteredTracks([...filteredTracks, track]);
+      dispatch(updateFilteredTracks([...filteredTracks, track]));
     }
   };
 
   const handleDeselectAll = () => {
-    updateFilteredTracks([]);
+    dispatch(updateFilteredTracks([]));
   };
 
   const handleSelectAll = () => {
-    updateFilteredTracks([...allTracks]);
+    dispatch(updateFilteredTracks([...allTracks]));
   };
 
   const iconMap: { [key: string]: any } = {
@@ -148,13 +139,4 @@ const SessionListFilter: React.FC<SessionListFilterProps> = ({
   );
 };
 
-export default connect<OwnProps, StateProps, DispatchProps>({
-  mapStateToProps: (state) => ({
-    allTracks: state.data.allTracks,
-    filteredTracks: state.data.filteredTracks,
-  }),
-  mapDispatchToProps: {
-    updateFilteredTracks,
-  },
-  component: SessionListFilter,
-});
+export default SessionListFilter;

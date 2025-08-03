@@ -5,13 +5,16 @@ const { v4: uuidv4 } = require('uuid');
 
 class DatabaseService {
   constructor() {
+    console.log('DatabaseService: Initializing...');
     this.shardManager = new ShardManager();
     this.migrationManager = new MigrationManager(this.shardManager);
     this.seederManager = new SeederManager(this.shardManager);
     this.initializeTables();
+    console.log('DatabaseService: Initialization complete.');
   }
 
   async initializeTables() {
+    console.log('DatabaseService: Initializing tables for all shards...');
     // Initialize tables for each shard
     const schemas = {
       users: `
@@ -139,16 +142,35 @@ class DatabaseService {
     for (const [shardName, schema] of Object.entries(schemas)) {
       try {
         const db = this.shardManager.getWriteConnection(shardName);
-        db.exec(schema);
-        console.log(`Initialized schema for shard: ${shardName}`);
+        // Wrap schema creation in a transaction for atomicity
+        db.transaction(() => {
+          db.exec(schema);
+        })(); // Immediately invoke the transaction
+        console.log(`DatabaseService: Initialized schema for shard: ${shardName}`);
       } catch (error) {
-        console.error(`Failed to initialize schema for shard ${shardName}:`, error);
+        console.error(`DatabaseService: Failed to initialize schema for shard ${shardName}:`, error);
       }
+    }
+    console.log('DatabaseService: All schemas initialized.');
+  }
+
+  /**
+   * Basic validation for data objects.
+   * @param {Object} data - The data object to validate.
+   * @param {string} operation - The operation being performed (e.g., 'create', 'update').
+   * @throws {Error} If the data is invalid.
+   */
+  _validateData(data, operation) {
+    if (!data || typeof data !== 'object' || Object.keys(data).length === 0) {
+      throw new Error(`Invalid data provided for ${operation} operation.`);
     }
   }
 
   // Generic CRUD operations
   async create(table, data) {
+    console.log(`DatabaseService: Creating record in table '${table}'.`);
+    this._validateData(data, 'create'); // Validate input data
+
     const id = uuidv4();
     const fields = Object.keys(data);
     const values = Object.values(data);
@@ -156,32 +178,62 @@ class DatabaseService {
     const placeholders = fields.map(() => '?').join(', ');
     const sql = `INSERT INTO ${table} (id, ${fields.join(', ')}) VALUES (?, ${placeholders})`;
     
-    await this.shardManager.executeWrite(table, sql, [id, ...values]);
-    return id;
+    try {
+      await this.shardManager.executeWrite(table, sql, [id, ...values]);
+      console.log(`DatabaseService: Record created with ID '${id}' in table '${table}'.`);
+      return id;
+    } catch (error) {
+      console.error(`DatabaseService: Failed to create record in table '${table}':`, error);
+      throw error;
+    }
   }
 
   async read(table, id) {
+    console.log(`DatabaseService: Reading record with ID '${id}' from table '${table}'.`);
     const sql = `SELECT * FROM ${table} WHERE id = ?`;
-    const results = await this.shardManager.executeRead(table, sql, [id]);
-    return results[0] || null;
+    try {
+      const results = await this.shardManager.executeRead(table, sql, [id]);
+      console.log(`DatabaseService: Read successful for record with ID '${id}' from table '${table}'. Found: ${results.length > 0}`);
+      return results[0] || null;
+    } catch (error) {
+      console.error(`DatabaseService: Failed to read record with ID '${id}' from table '${table}':`, error);
+      throw error;
+    }
   }
 
   async update(table, id, data) {
+    console.log(`DatabaseService: Updating record with ID '${id}' in table '${table}'.`);
+    this._validateData(data, 'update'); // Validate input data
+
     const fields = Object.keys(data);
     const values = Object.values(data);
     
     const setClause = fields.map(field => `${field} = ?`).join(', ');
     const sql = `UPDATE ${table} SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
     
-    await this.shardManager.executeWrite(table, sql, [...values, id]);
+    try {
+      await this.shardManager.executeWrite(table, sql, [...values, id]);
+      console.log(`DatabaseService: Record with ID '${id}' updated in table '${table}'.`);
+    } catch (error) {
+      console.error(`DatabaseService: Failed to update record with ID '${id}' in table '${table}':`, error);
+      throw error;
+    }
   }
 
   async delete(table, id) {
+    console.log(`DatabaseService: Deleting record with ID '${id}' from table '${table}'.`);
     const sql = `DELETE FROM ${table} WHERE id = ?`;
-    await this.shardManager.executeWrite(table, sql, [id]);
+    try {
+      await this.shardManager.executeWrite(table, sql, [id]);
+      console.log(`DatabaseService: Record with ID '${id}' deleted from table '${table}'.`);
+    } catch (error) {
+      console.error(`DatabaseService: Failed to delete record with ID '${id}' from table '${table}':`, error);
+      throw error;
+    }
   }
 
   async query(table, filters = {}) {
+    console.log(`DatabaseService: Querying table '${table}' with filters:`, filters);
     let sql = `SELECT * FROM ${table}`;
     const params = [];
     
@@ -193,27 +245,56 @@ class DatabaseService {
       sql += ` WHERE ${conditions.join(' AND ')}`;
     }
     
-    return await this.shardManager.executeRead(table, sql, params);
+    try {
+      const results = await this.shardManager.executeRead(table, sql, params);
+      console.log(`DatabaseService: Query successful for table '${table}'. Found ${results.length} records.`);
+      return results;
+    } catch (error) {
+      console.error(`DatabaseService: Failed to query table '${table}':`, error);
+      throw error;
+    }
   }
 
   // Specialized methods for complex operations
   async getUserAccounts(userId) {
-    return await this.query('accounts', { user_id: userId });
+    console.log(`DatabaseService: Getting accounts for user ID: ${userId}`);
+    try {
+      const accounts = await this.query('accounts', { user_id: userId });
+      console.log(`DatabaseService: Found ${accounts.length} accounts for user ID: ${userId}`);
+      return accounts;
+    } catch (error) {
+      console.error(`DatabaseService: Failed to get accounts for user ID '${userId}':`, error);
+      throw error;
+    }
   }
 
   async getUserTransactions(userId, limit = 100) {
+    console.log(`DatabaseService: Getting transactions for user ID: ${userId} with limit: ${limit}`);
     const sql = `SELECT * FROM transactions WHERE user_id = ? ORDER BY date DESC LIMIT ?`;
-    return await this.shardManager.executeRead('transactions', sql, [userId, limit]);
+    try {
+      const transactions = await this.shardManager.executeRead('transactions', sql, [userId, limit]);
+      console.log(`DatabaseService: Found ${transactions.length} transactions for user ID: ${userId}`);
+      return transactions;
+    } catch (error) {
+      console.error(`DatabaseService: Failed to get transactions for user ID '${userId}':`, error);
+      throw error;
+    }
   }
 
   async createTransactionWithSplits(transactionData, splits) {
+    console.log('DatabaseService: Creating transaction with splits.');
+    this._validateData(transactionData, 'createTransactionWithSplits - transactionData');
+    if (!Array.isArray(splits) || splits.length === 0) {
+      throw new Error('Invalid splits data provided for createTransactionWithSplits operation.');
+    }
+
     const operations = [];
     
     // Create transaction
     const transactionId = uuidv4();
     operations.push({
       table: 'transactions',
-      sql: `INSERT INTO transactions (id, user_id, account_id, amount, currency, description, category, tags, date) 
+      sql: `INSERT INTO transactions (id, user_id, account_id, amount, currency, description, category, tags, date)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       params: [
         transactionId,
@@ -230,6 +311,7 @@ class DatabaseService {
 
     // Create splits
     splits.forEach(split => {
+      this._validateData(split, 'createTransactionWithSplits - split');
       operations.push({
         table: 'transaction_splits',
         sql: `INSERT INTO transaction_splits (id, transaction_id, pouch_id, amount) VALUES (?, ?, ?, ?)`,
@@ -237,54 +319,99 @@ class DatabaseService {
       });
     });
 
-    await this.shardManager.executeTransaction(operations);
-    return transactionId;
+    try {
+      await this.shardManager.executeTransaction(operations);
+      console.log(`DatabaseService: Transaction with splits created successfully. Transaction ID: ${transactionId}`);
+      return transactionId;
+    } catch (error) {
+      console.error('DatabaseService: Failed to create transaction with splits:', error);
+      throw error;
+    }
   }
 
   // Migration methods
   async runMigrations(shardName = null) {
-    if (shardName) {
-      return await this.migrationManager.runMigrations(shardName);
-    } else {
-      return await this.migrationManager.runAllMigrations();
+    console.log(`DatabaseService: Running migrations for shard: ${shardName || 'all'}`);
+    try {
+      if (shardName) {
+        return await this.migrationManager.runMigrations(shardName);
+      } else {
+        return await this.migrationManager.runAllMigrations();
+      }
+    } catch (error) {
+      console.error(`DatabaseService: Failed to run migrations for shard ${shardName || 'all'}:`, error);
+      throw error;
     }
   }
 
   async rollbackMigration(shardName) {
-    return await this.migrationManager.rollbackMigration(shardName);
+    console.log(`DatabaseService: Rolling back migration for shard: ${shardName}`);
+    try {
+      return await this.migrationManager.rollbackMigration(shardName);
+    } catch (error) {
+      console.error(`DatabaseService: Failed to rollback migration for shard ${shardName}:`, error);
+      throw error;
+    }
   }
 
   getMigrationStatus() {
+    console.log('DatabaseService: Getting migration status.');
     return this.migrationManager.getMigrationStatus();
   }
 
   // Seeder methods
   async runSeeders(shardName = null) {
-    if (shardName) {
-      return await this.seederManager.runSeeders(shardName);
-    } else {
-      return await this.seederManager.runAllSeeders();
+    console.log(`DatabaseService: Running seeders for shard: ${shardName || 'all'}`);
+    try {
+      if (shardName) {
+        return await this.seederManager.runSeeders(shardName);
+      } else {
+        return await this.seederManager.runAllSeeders();
+      }
+    } catch (error) {
+      console.error(`DatabaseService: Failed to run seeders for shard ${shardName || 'all'}:`, error);
+      throw error;
     }
   }
 
   async runSeeder(shardName, seederName) {
-    return await this.seederManager.runSeeder(shardName, seederName);
+    console.log(`DatabaseService: Running seeder '${seederName}' for shard: ${shardName}`);
+    try {
+      return await this.seederManager.runSeeder(shardName, seederName);
+    } catch (error) {
+      console.error(`DatabaseService: Failed to run seeder '${seederName}' for shard ${shardName}:`, error);
+      throw error;
+    }
   }
 
   async resetSeeders(shardName) {
-    return await this.seederManager.resetSeeders(shardName);
+    console.log(`DatabaseService: Resetting seeders for shard: ${shardName}`);
+    try {
+      return await this.seederManager.resetSeeders(shardName);
+    } catch (error) {
+      console.error(`DatabaseService: Failed to reset seeders for shard ${shardName}:`, error);
+      throw error;
+    }
   }
 
   async refreshSeeders(shardName) {
-    return await this.seederManager.refreshSeeders(shardName);
+    console.log(`DatabaseService: Refreshing seeders for shard: ${shardName}`);
+    try {
+      return await this.seederManager.refreshSeeders(shardName);
+    } catch (error) {
+      console.error(`DatabaseService: Failed to refresh seeders for shard ${shardName}:`, error);
+      throw error;
+    }
   }
 
   getSeederStatus() {
+    console.log('DatabaseService: Getting seeder status.');
     return this.seederManager.getSeederStatus();
   }
 
   // Health check for all shards
   async healthCheck() {
+    console.log('DatabaseService: Performing health check for all shards.');
     const health = {};
     
     for (const shardName of this.shardManager.shards.keys()) {
@@ -292,16 +419,20 @@ class DatabaseService {
         const db = this.shardManager.getWriteConnection(shardName);
         db.prepare('SELECT 1').get();
         health[shardName] = 'healthy';
+        console.log(`DatabaseService: Shard '${shardName}' is healthy.`);
       } catch (error) {
         health[shardName] = 'unhealthy';
+        console.error(`DatabaseService: Shard '${shardName}' is unhealthy:`, error);
       }
     }
-    
+    console.log('DatabaseService: Health check complete.');
     return health;
   }
 
   close() {
+    console.log('DatabaseService: Closing database connections.');
     this.shardManager.close();
+    console.log('DatabaseService: Database connections closed.');
   }
 }
 

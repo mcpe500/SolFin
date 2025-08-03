@@ -1,3 +1,8 @@
+/**
+ * @module accountRoutes
+ * @description Defines API routes for managing financial accounts.
+ * Includes operations for creating, retrieving, updating, and deleting accounts.
+ */
 async function accountRoutes (fastify, options) {
   // Create Account
   fastify.post('/accounts', async (request, reply) => {

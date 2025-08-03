@@ -1,10 +1,26 @@
 // Migration: Create initial tables for all shards
 // This migration creates the base table structure for each shard
 
+/**
+ * @module 001_create_initial_tables
+ * @description This migration creates the initial table structure for all sharded databases.
+ * It defines the schema for users, accounts, transactions, pouches, and transfers,
+ * including primary keys, foreign keys, unique constraints, and initial indexes.
+ */
 module.exports = {
-  // Define which shards this migration applies to (if not specified, applies to all)
+  /**
+   * Defines which shards this migration applies to.
+   * If not specified, the migration applies to all shards.
+   * @type {Array<string>}
+   */
   shards: ['users', 'accounts', 'transactions', 'pouches', 'transfers'],
   
+  /**
+   * Applies the migration to create initial tables.
+   * @param {import('better-sqlite3').Database} db - The database connection for the current shard.
+   * @param {string} shardName - The name of the shard currently being migrated.
+   * @returns {Promise<void>}
+   */
   async up(db, shardName) {
     console.log(`Creating initial tables for shard: ${shardName}`);
     
@@ -213,6 +229,13 @@ module.exports = {
     console.log(`Initial tables created successfully for shard: ${shardName}`);
   },
   
+  /**
+   * Reverts the migration by dropping the initial tables.
+   * Note: SQLite does not support DROP COLUMN, so this method focuses on dropping tables and indexes.
+   * @param {import('better-sqlite3').Database} db - The database connection for the current shard.
+   * @param {string} shardName - The name of the shard currently being reverted.
+   * @returns {Promise<void>}
+   */
   async down(db, shardName) {
     console.log(`Dropping initial tables for shard: ${shardName}`);
     

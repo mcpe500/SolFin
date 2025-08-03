@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react'; // Import useMemo
 import {
   IonHeader,
   IonToolbar,
@@ -14,25 +14,31 @@ import {
 import SpeakerItem from '../components/SpeakerItem';
 import { Speaker } from '../models/Speaker';
 import { Session } from '../models/Schedule';
-import { connect } from '../data/connect';
-import * as selectors from '../data/selectors';
+import { useDispatch, useSelector } from 'react-redux';
+import { getSpeakers, getAllSessions, loadConfData } from '../data/sessions/sessionsSlice';
+import { RootState, AppDispatch } from '../store';
 import './SpeakerList.scss';
 
-interface OwnProps {}
+const SpeakerList: React.FC = () => {
+  const dispatch: AppDispatch = useDispatch();
+  const speakers = useSelector((state: RootState) => getSpeakers(state));
+  const sessions = useSelector((state: RootState) => getAllSessions(state));
 
-interface StateProps {
-  speakers: Speaker[];
-  speakerSessions: { [key: string]: Session[] };
-}
+  useEffect(() => {
+    dispatch(loadConfData());
+  }, [dispatch]);
 
-interface DispatchProps {}
+  // Memoize the speakerSessions calculation
+  const speakerSessions = useMemo(() => {
+    const sessionsMap: { [key: string]: Session[] } = {};
+    speakers.forEach(speaker => {
+      sessionsMap[speaker.name] = sessions.filter((session: Session) =>
+        session.speakerNames.includes(speaker.name)
+      );
+    });
+    return sessionsMap;
+  }, [speakers, sessions]); // Recalculate only when speakers or sessions change
 
-interface SpeakerListProps extends OwnProps, StateProps, DispatchProps {}
-
-const SpeakerList: React.FC<SpeakerListProps> = ({
-  speakers,
-  speakerSessions,
-}) => {
   return (
     <IonPage id="speaker-list">
       <IonHeader translucent={true}>
@@ -69,10 +75,4 @@ const SpeakerList: React.FC<SpeakerListProps> = ({
   );
 };
 
-export default connect<OwnProps, StateProps, DispatchProps>({
-  mapStateToProps: (state) => ({
-    speakers: selectors.getSpeakers(state),
-    speakerSessions: selectors.getSpeakerSessions(state),
-  }),
-  component: React.memo(SpeakerList),
-});
+export default SpeakerList;

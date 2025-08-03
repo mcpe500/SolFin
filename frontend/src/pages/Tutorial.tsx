@@ -10,29 +10,23 @@ import {
   useIonViewWillEnter,
 } from '@ionic/react';
 import { arrowForward } from 'ionicons/icons';
-import { setMenuEnabled } from '../data/sessions/sessions.actions';
-import { setHasSeenTutorial } from '../data/user/user.actions';
+import { setMenuEnabled } from '../data/sessions/sessionsSlice';
+import { setHasSeenTutorial } from '../data/user/userSlice';
 import './Tutorial.scss';
-import { connect } from '../data/connect';
+import { useDispatch } from 'react-redux';
 import { RouteComponentProps } from 'react-router';
+import { AppDispatch } from '../store';
 
-interface OwnProps extends RouteComponentProps {}
-interface DispatchProps {
-  setHasSeenTutorial: typeof setHasSeenTutorial;
-  setMenuEnabled: typeof setMenuEnabled;
-}
-
-interface TutorialProps extends OwnProps, DispatchProps {}
+interface TutorialProps extends RouteComponentProps {}
 
 const Tutorial: React.FC<TutorialProps> = ({
   history,
-  setHasSeenTutorial,
-  setMenuEnabled,
 }) => {
+  const dispatch: AppDispatch = useDispatch();
   const sliderRef = useRef<HTMLDivElement>(null);
 
   useIonViewWillEnter(() => {
-    setMenuEnabled(false);
+    dispatch(setMenuEnabled(false));
     // Scroll to first slide when entering the tutorial
     if (sliderRef.current) {
       sliderRef.current.scrollTo({
@@ -43,8 +37,8 @@ const Tutorial: React.FC<TutorialProps> = ({
   });
 
   const startApp = async () => {
-    await setHasSeenTutorial(true);
-    await setMenuEnabled(true);
+    await dispatch(setHasSeenTutorial(true));
+    await dispatch(setMenuEnabled(true));
     history.push('/tabs/schedule', { direction: 'none' });
   };
 
@@ -128,10 +122,4 @@ const Tutorial: React.FC<TutorialProps> = ({
   );
 };
 
-export default connect<OwnProps, {}, DispatchProps>({
-  mapDispatchToProps: {
-    setHasSeenTutorial,
-    setMenuEnabled,
-  },
-  component: Tutorial,
-});
+export default Tutorial;

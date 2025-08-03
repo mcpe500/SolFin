@@ -1,5 +1,6 @@
 import React from 'react';
-import { RouteComponentProps, withRouter, useLocation } from 'react-router';
+import { useLocation, useHistory } from 'react-router';
+import { useSelector, useDispatch } from 'react-redux';
 
 import {
   IonContent,
@@ -26,10 +27,11 @@ import {
   personAdd,
 } from 'ionicons/icons';
 
-import { connect } from '../data/connect';
-import { setDarkMode } from '../data/user/user.actions';
+import { setDarkMode } from '../data/user/userSlice'; // Import from userSlice
+import { RootState } from '../store'; // Import RootState
+import { setMenuEnabled } from '../data/sessions/sessionsSlice'; // Import from sessionsSlice
 
-import './Menu.css';
+import './Menu.scss';
 
 const routes = {
   appPages: [
@@ -56,26 +58,23 @@ interface Pages {
   icon: string;
   routerDirection?: string;
 }
-interface StateProps {
-  darkMode: boolean;
-  isAuthenticated: boolean;
-  menuEnabled: boolean;
-}
 
-interface DispatchProps {
-  setDarkMode: typeof setDarkMode;
-}
-
-interface MenuProps extends RouteComponentProps, StateProps, DispatchProps {}
-
-const Menu: React.FC<MenuProps> = ({
-  darkMode,
-  history,
-  isAuthenticated,
-  setDarkMode,
-  menuEnabled,
-}) => {
+const Menu: React.FC = () => {
   const location = useLocation();
+  const history = useHistory();
+  const dispatch = useDispatch();
+
+  const darkMode = useSelector((state: RootState) => state.user.darkMode);
+  const isAuthenticated = useSelector((state: RootState) => state.user.isLoggedin);
+  const menuEnabled = useSelector((state: RootState) => state.sessions.menuEnabled); // Access from sessions slice
+
+  const handleSetDarkMode = (checked: boolean) => {
+    dispatch(setDarkMode(checked));
+  };
+
+  const handleShowTutorial = () => {
+    history.push('/tutorial');
+  };
 
   function renderlistItems(list: Pages[]) {
     return list
@@ -117,7 +116,7 @@ const Menu: React.FC<MenuProps> = ({
             ></IonIcon>
             <IonToggle
               checked={darkMode}
-              onClick={() => setDarkMode(!darkMode)}
+              onClick={() => handleSetDarkMode(!darkMode)}
             >
               Dark Mode
             </IonToggle>
@@ -128,9 +127,7 @@ const Menu: React.FC<MenuProps> = ({
           <IonItem
             button
             detail={false}
-            onClick={() => {
-              history.push('/tutorial');
-            }}
+            onClick={handleShowTutorial}
           >
             <IonIcon slot="start" icon={hammer} />
             <IonLabel>Show Tutorial</IonLabel>
@@ -141,14 +138,4 @@ const Menu: React.FC<MenuProps> = ({
   );
 };
 
-export default connect<{}, StateProps, {}>({
-  mapStateToProps: (state) => ({
-    darkMode: state.user.darkMode,
-    isAuthenticated: state.user.isLoggedin,
-    menuEnabled: state.data.menuEnabled,
-  }),
-  mapDispatchToProps: {
-    setDarkMode,
-  },
-  component: withRouter(Menu),
-});
+export default Menu;

@@ -10,8 +10,9 @@ import {
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Schedule, Session } from '../models/Schedule';
 import SessionListItem from './SessionListItem';
-import { connect } from '../data/connect';
-import { addFavorite, removeFavorite } from '../data/sessions/sessions.actions';
+import { useDispatch, useSelector } from 'react-redux';
+import { addFavorite, removeFavorite } from '../data/sessions/sessionsSlice';
+import { RootState } from '../store';
 
 interface OwnProps {
   schedule: Schedule;
@@ -19,25 +20,13 @@ interface OwnProps {
   hide: boolean;
 }
 
-interface StateProps {
-  favoriteSessions: number[];
-}
-
-interface DispatchProps {
-  addFavorite: typeof addFavorite;
-  removeFavorite: typeof removeFavorite;
-}
-
-interface SessionListProps extends OwnProps, StateProps, DispatchProps {}
-
-const SessionList: React.FC<SessionListProps> = ({
-  addFavorite,
-  removeFavorite,
-  favoriteSessions,
+const SessionList: React.FC<OwnProps> = ({
   hide,
   schedule,
   listType,
 }) => {
+  const dispatch = useDispatch();
+  const favoriteSessions = useSelector((state: RootState) => state.sessions.favorites);
   const scheduleListRef = useRef<HTMLIonListElement>(null);
   const [showAlert, setShowAlert] = useState(false);
   const [alertHeader, setAlertHeader] = useState('');
@@ -55,6 +44,14 @@ const SessionList: React.FC<SessionListProps> = ({
     },
     []
   );
+
+  const handleAddFavorite = useCallback((sessionId: string) => {
+    dispatch(addFavorite(sessionId));
+  }, [dispatch]);
+
+  const handleRemoveFavorite = useCallback((sessionId: string) => {
+    dispatch(removeFavorite(sessionId));
+  }, [dispatch]);
 
   useEffect(() => {
     if (scheduleListRef.current) {
@@ -81,9 +78,9 @@ const SessionList: React.FC<SessionListProps> = ({
             {group.sessions.map((session: Session, sessionIndex: number) => (
               <SessionListItem
                 onShowAlert={handleShowAlert}
-                isFavorite={favoriteSessions.indexOf(session.id) > -1}
-                onAddFavorite={addFavorite}
-                onRemoveFavorite={removeFavorite}
+                isFavorite={favoriteSessions.indexOf(session.id.toString()) > -1} // Convert to string for comparison
+                onAddFavorite={handleAddFavorite}
+                onRemoveFavorite={handleRemoveFavorite}
                 key={`group-${index}-${sessionIndex}`}
                 session={session}
                 listType={listType}
@@ -103,13 +100,4 @@ const SessionList: React.FC<SessionListProps> = ({
   );
 };
 
-export default connect<OwnProps, StateProps, DispatchProps>({
-  mapStateToProps: (state) => ({
-    favoriteSessions: state.data.favorites,
-  }),
-  mapDispatchToProps: {
-    addFavorite,
-    removeFavorite,
-  },
-  component: SessionList,
-});
+export default SessionList;

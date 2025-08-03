@@ -1,21 +1,21 @@
 import React, { useEffect, useContext } from 'react';
 import { IonRouterContext } from '@ionic/react';
+import { useDispatch } from 'react-redux';
+import { setIsLoggedIn, setUsername } from '../data/user/userSlice';
+import { AppDispatch } from '../store'; // Import AppDispatch
 
-interface RedirectToLoginProps {
-  setIsLoggedIn: Function;
-  setUsername: Function;
-}
-
-const RedirectToLogin: React.FC<RedirectToLoginProps> = ({
-  setIsLoggedIn,
-  setUsername,
-}) => {
+const RedirectToLogin: React.FC = () => {
+  const dispatch: AppDispatch = useDispatch(); // Cast dispatch to AppDispatch
   const ionRouterContext = useContext(IonRouterContext);
+
   useEffect(() => {
-    setIsLoggedIn(false);
-    setUsername(undefined);
-    ionRouterContext.push('/tabs/schedule');
-  }, [setIsLoggedIn, setUsername]);
+    const performRedirect = async () => {
+      await dispatch(setIsLoggedIn(false));
+      await dispatch(setUsername(undefined));
+      ionRouterContext.push('/tabs/schedule');
+    };
+    performRedirect();
+  }, [dispatch, ionRouterContext]);
   return null;
 };
 

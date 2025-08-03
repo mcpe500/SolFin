@@ -1,38 +1,45 @@
 import { Preferences as Storage } from '@capacitor/preferences';
-import { Schedule, Session } from '../models/Schedule';
-import { Speaker } from '../models/Speaker';
-import { Location } from '../models/Location';
-
-const dataUrl = '/assets/data/data.json';
-const locationsUrl = '/assets/data/locations.json';
 
 const HAS_LOGGED_IN = 'hasLoggedIn';
 const HAS_SEEN_TUTORIAL = 'hasSeenTutorial';
 const USERNAME = 'username';
 
-export const getConfData = async () => {
-  const response = await Promise.all([fetch(dataUrl), fetch(locationsUrl)]);
-  const responseData = await response[0].json();
-  const schedule = responseData.schedule[0] as Schedule;
-  const sessions = parseSessions(schedule);
-  const speakers = responseData.speakers as Speaker[];
-  const locations = (await response[1].json()) as Location[];
-  const allTracks = sessions
-    .reduce((all, session) => all.concat(session.tracks), [] as string[])
-    .filter((trackName, index, array) => array.indexOf(trackName) === index)
-    .sort();
-
-  const data = {
-    schedule,
-    sessions,
-    locations,
-    speakers,
-    allTracks,
-    filteredTracks: [...allTracks],
-  };
-  return data;
+/**
+ * Sets the user's logged-in status in local storage.
+ * @param {boolean} isLoggedIn - The logged-in status.
+ */
+export const setIsLoggedInData = async (isLoggedIn: boolean) => {
+  await Storage.set({ key: HAS_LOGGED_IN, value: JSON.stringify(isLoggedIn) });
 };
 
+/**
+ * Sets the user's tutorial seen status in local storage.
+ * @param {boolean} hasSeenTutorial - The tutorial seen status.
+ */
+export const setHasSeenTutorialData = async (hasSeenTutorial: boolean) => {
+  await Storage.set({
+    key: HAS_SEEN_TUTORIAL,
+    value: JSON.stringify(hasSeenTutorial),
+  });
+};
+
+/**
+ * Sets the username in local storage.
+ * If username is undefined, it removes the username from local storage.
+ * @param {string} [username] - The username to set or undefined to remove.
+ */
+export const setUsernameData = async (username?: string) => {
+  if (!username) {
+    await Storage.remove({ key: USERNAME });
+  } else {
+    await Storage.set({ key: USERNAME, value: username });
+  }
+};
+
+/**
+ * Retrieves user data from local storage.
+ * @returns {Promise<object>} An object containing isLoggedin, hasSeenTutorial, and username.
+ */
 export const getUserData = async () => {
   const response = await Promise.all([
     Storage.get({ key: HAS_LOGGED_IN }),
@@ -49,30 +56,3 @@ export const getUserData = async () => {
   };
   return data;
 };
-
-export const setIsLoggedInData = async (isLoggedIn: boolean) => {
-  await Storage.set({ key: HAS_LOGGED_IN, value: JSON.stringify(isLoggedIn) });
-};
-
-export const setHasSeenTutorialData = async (hasSeenTutorial: boolean) => {
-  await Storage.set({
-    key: HAS_SEEN_TUTORIAL,
-    value: JSON.stringify(hasSeenTutorial),
-  });
-};
-
-export const setUsernameData = async (username?: string) => {
-  if (!username) {
-    await Storage.remove({ key: USERNAME });
-  } else {
-    await Storage.set({ key: USERNAME, value: username });
-  }
-};
-
-function parseSessions(schedule: Schedule) {
-  const sessions: Session[] = [];
-  schedule.groups.forEach((g) => {
-    g.sessions.forEach((s) => sessions.push(s));
-  });
-  return sessions;
-}

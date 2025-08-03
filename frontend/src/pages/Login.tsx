@@ -14,30 +14,48 @@ import {
 } from '@ionic/react';
 import { useHistory } from 'react-router';
 import './Login.scss';
-import { setIsLoggedIn, setUsername } from '../data/user/user.actions';
-import { connect } from '../data/connect';
+import { useDispatch } from 'react-redux';
+import { setIsLoggedIn, setUsername, userLogin } from '../data/user/userSlice'; // Import userLogin thunk
+import { AppDispatch } from '../store';
+import { useIonToast } from '@ionic/react';
+import { info, error as logError } from '../utils/logger'; // Import logger utilities
 
-interface LoginProps {
-  setIsLoggedIn: typeof setIsLoggedIn;
-  setUsername: typeof setUsername;
-}
-
-const Login: React.FC<LoginProps> = ({
-  setIsLoggedIn,
-  setUsername: setUsernameAction,
-}) => {
+const Login: React.FC = () => {
   const history = useHistory();
+  const dispatch: AppDispatch = useDispatch();
   const [login, setLogin] = useState({ username: '', password: '' });
   const [submitted, setSubmitted] = useState(false);
+  const [presentToast] = useIonToast();
 
   const onLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitted(true);
 
     if (login.username && login.password) {
-      await setIsLoggedIn(true);
-      await setUsernameAction(login.username);
-      history.push('/tabs/schedule');
+      try {
+        await dispatch(userLogin({ email: login.username, password: login.password })).unwrap();
+        info(`User ${login.username} logged in successfully.`); // Log success
+        presentToast({
+          message: 'Login successful!',
+          duration: 1500,
+          color: 'success',
+        });
+        history.push('/tabs/schedule');
+      } catch (err: any) {
+        const errorMessage = err.message || 'Login failed. Please check your credentials.';
+        logError(`Login failed for user ${login.username}:`, errorMessage); // Log error
+        presentToast({
+          message: errorMessage,
+          duration: 3000,
+          color: 'danger',
+        });
+      }
+    } else {
+      presentToast({
+        message: 'Please enter both username and password.',
+        duration: 3000,
+        color: 'warning',
+      });
     }
   };
 
@@ -68,16 +86,17 @@ const Login: React.FC<LoginProps> = ({
               fill="solid"
               value={login.username}
               name="username"
-              type="text"
+              type="email" // Changed to email type for better validation
               spellCheck={false}
               autocapitalize="off"
               errorText={
-                submitted && !login.username ? 'Username is required' : ''
+                (submitted && !login.username) ? 'Email is required' : ''
               }
               onIonInput={(e) =>
                 setLogin({ ...login, username: e.detail.value! })
               }
               required
+              pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$" // Basic email pattern
             />
 
             <IonInput
@@ -87,8 +106,9 @@ const Login: React.FC<LoginProps> = ({
               value={login.password}
               name="password"
               type="password"
+              minlength={8}
               errorText={
-                submitted && !login.password ? 'Password is required' : ''
+                (submitted && !login.password) ? 'Password is required' : ''
               }
               onIonInput={(e) =>
                 setLogin({ ...login, password: e.detail.value! })
@@ -115,10 +135,4 @@ const Login: React.FC<LoginProps> = ({
   );
 };
 
-export default connect<{}, {}, LoginProps>({
-  mapDispatchToProps: {
-    setIsLoggedIn,
-    setUsername,
-  },
-  component: Login,
-});
+export default Login;

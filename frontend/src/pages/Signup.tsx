@@ -14,30 +14,50 @@ import {
 } from '@ionic/react';
 import { useHistory } from 'react-router';
 import './Signup.scss';
-import { setIsLoggedIn, setUsername } from '../data/user/user.actions';
-import { connect } from '../data/connect';
+import { useDispatch } from 'react-redux';
+import { setIsLoggedIn, setUsername, userRegister } from '../data/user/userSlice'; // Import userRegister thunk
+import { AppDispatch } from '../store';
+import { useIonToast } from '@ionic/react';
+import { info, error as logError } from '../utils/logger'; // Import logger utilities
 
-interface SignupProps {
-  setIsLoggedIn: typeof setIsLoggedIn;
-  setUsername: typeof setUsername;
-}
-
-const Signup: React.FC<SignupProps> = ({
-  setIsLoggedIn,
-  setUsername: setUsernameAction,
-}) => {
+const Signup: React.FC = () => {
   const history = useHistory();
+  const dispatch: AppDispatch = useDispatch();
   const [signup, setSignup] = useState({ username: '', password: '' });
   const [submitted, setSubmitted] = useState(false);
+  const [presentToast] = useIonToast();
 
   const onSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitted(true);
 
     if (signup.username && signup.password) {
-      await setIsLoggedIn(true);
-      await setUsernameAction(signup.username);
-      history.push('/tabs/schedule');
+      try {
+        await dispatch(userRegister({ email: signup.username, password: signup.password })).unwrap();
+        info(`User ${signup.username} registered successfully.`); // Log success
+        presentToast({
+          message: 'Registration successful!',
+          duration: 1500,
+          color: 'success',
+        });
+        // Optionally, log in the user after successful registration
+        // await dispatch(userLogin({ email: signup.username, password: signup.password })).unwrap();
+        history.push('/tabs/schedule');
+      } catch (err: any) {
+        const errorMessage = err.message || 'Registration failed.';
+        logError(`Registration failed for user ${signup.username}:`, errorMessage); // Log error
+        presentToast({
+          message: errorMessage,
+          duration: 3000,
+          color: 'danger',
+        });
+      }
+    } else {
+      presentToast({
+        message: 'Please enter both username and password.',
+        duration: 3000,
+        color: 'warning',
+      });
     }
   };
 
@@ -64,14 +84,15 @@ const Signup: React.FC<SignupProps> = ({
               fill="solid"
               value={signup.username}
               name="username"
-              type="text"
+              type="email" // Changed to email type for better validation
               errorText={
-                submitted && !signup.username ? 'Username is required' : ''
+                (submitted && !signup.username) ? 'Email is required' : ''
               }
               onIonInput={(e) =>
                 setSignup({ ...signup, username: e.detail.value! })
               }
               required
+              pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$" // Basic email pattern
             />
 
             <IonInput
@@ -81,8 +102,9 @@ const Signup: React.FC<SignupProps> = ({
               value={signup.password}
               name="password"
               type="password"
+              minlength={8} // Add minlength for password
               errorText={
-                submitted && !signup.password ? 'Password is required' : ''
+                (submitted && !signup.password) ? 'Password is required' : ''
               }
               onIonInput={(e) =>
                 setSignup({ ...signup, password: e.detail.value! })
@@ -104,10 +126,4 @@ const Signup: React.FC<SignupProps> = ({
   );
 };
 
-export default connect<{}, {}, SignupProps>({
-  mapDispatchToProps: {
-    setIsLoggedIn,
-    setUsername,
-  },
-  component: Signup,
-});
+export default Signup;

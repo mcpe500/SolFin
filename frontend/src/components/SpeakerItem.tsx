@@ -11,11 +11,23 @@ import {
   IonList,
 } from '@ionic/react';
 
+/**
+ * @interface SpeakerItemProps
+ * @description Props for the SpeakerItem component.
+ * @property {Speaker} speaker - The speaker object to display.
+ * @property {Session[]} sessions - An array of sessions associated with the speaker.
+ */
 interface SpeakerItemProps {
   speaker: Speaker;
   sessions: Session[];
 }
 
+/**
+ * @component SpeakerItem
+ * @description Displays a speaker's information and their associated sessions within a card.
+ * @param {SpeakerItemProps} props - The props for the component.
+ * @returns {React.FC} A React functional component.
+ */
 const SpeakerItem: React.FC<SpeakerItemProps> = ({ speaker, sessions }) => {
   return (
     <>

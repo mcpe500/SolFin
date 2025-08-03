@@ -1,12 +1,15 @@
+$login-form-padding: 16px;
+$logo-max-width: 150px;
+
 #login-page, #signup-page, #support-page {
   .login-logo {
     min-height: 200px;
     padding: 20px 0;
     text-align: center;
-  }
 
-  .login-logo img {
-    max-width: 150px;
+    img { // Nested img style
+      max-width: $logo-max-width;
+    }
   }
 
   .list {
@@ -14,7 +17,7 @@
   }
 
   .login-form {
-    padding: 16px;
+    padding: $login-form-padding;
   }
 
   ion-input {
