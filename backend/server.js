@@ -1,6 +1,14 @@
 // server.js
 require('dotenv').config(); // Load environment variables
 
+/**
+ * @function buildFastify
+ * @description Initializes and configures the Fastify server, setting up database
+ *              repository, user service, authentication plugin, routes, and global error handling.
+ *              It also performs an initial health check on the database service.
+ * @returns {Promise<FastifyInstance>} A Promise that resolves to the configured Fastify server instance.
+ * @throws {Error} If there's a critical error during Fastify app building or database connection fails.
+ */
 const buildFastify = async () => {
   const fastify = require('fastify')({ logger: true });
   const DatabaseRepository = require('./repositories/DatabaseRepository');
@@ -51,46 +59,38 @@ const buildFastify = async () => {
   fastify.setErrorHandler(async (error, request, reply) => {
     request.log.error(error); // Log the error for debugging
 
+    // Centralized error handling based on error properties or messages
+    let statusCode = 500;
+    let errorMessage = 'An unexpected error occurred.';
+    let errorDetails = null;
+
     if (error.validation) {
-      // Handle Fastify validation errors
-      reply.code(400).send({
-        statusCode: 400,
-        error: 'Bad Request',
-        message: error.message,
-        details: error.validation
-      });
+      statusCode = 400;
+      errorMessage = 'Bad Request';
+      errorDetails = error.validation;
     } else if (error.message.includes('Authentication required')) {
-      reply.code(401).send({
-        statusCode: 401,
-        error: 'Unauthorized',
-        message: error.message
-      });
+      statusCode = 401;
+      errorMessage = 'Unauthorized';
     } else if (error.message.includes('Forbidden')) {
-      reply.code(403).send({
-        statusCode: 403,
-        error: 'Forbidden',
-        message: error.message
-      });
-    } else if (error.message.includes('not found')) { // Generic "not found"
-      reply.code(404).send({
-        statusCode: 404,
-        error: 'Not Found',
-        message: error.message
-      });
-    } else if (error.message.includes('already exists')) { // Generic "already exists"
-      reply.code(409).send({
-        statusCode: 409,
-        error: 'Conflict',
-        message: error.message
-      });
+      statusCode = 403;
+      errorMessage = 'Forbidden';
+    } else if (error.message.includes('not found')) {
+      statusCode = 404;
+      errorMessage = 'Not Found';
+    } else if (error.message.includes('already exists')) {
+      statusCode = 409;
+      errorMessage = 'Conflict';
     } else {
-      // Default to 500 for unhandled errors
-      reply.code(500).send({
-        statusCode: 500,
-        error: 'Internal Server Error',
-        message: 'An unexpected error occurred.'
-      });
+      // For any other unhandled errors, use the error's message if available
+      errorMessage = error.message || errorMessage;
     }
+
+    reply.code(statusCode).send({
+      statusCode: statusCode,
+      error: errorMessage,
+      message: error.message, // Provide original error message for more context
+      details: errorDetails
+    });
   });
 
   // Test database connection

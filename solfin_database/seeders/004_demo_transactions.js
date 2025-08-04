@@ -1,14 +1,35 @@
-// Seeder: Create demo transactions for demo accounts
+/**
+ * @module 004_demo_transactions
+ * @description Seeder to populate the 'transactions' shard with demo transaction data.
+ *              This seeder includes various types of transactions (income, expense)
+ *              and demonstrates the use of transaction splits with pouches.
+ *              It assumes that demo users and accounts have already been created
+ *              by previous seeders (`001_demo_users`, `002_demo_accounts`, `003_demo_pouches`).
+ */
 const { v4: uuidv4 } = require('uuid');
 
 module.exports = {
-  // This seeder only applies to the transactions shard
+  /**
+   * @property {Array<string>} shards - Defines which shards this seeder applies to.
+   *                                  This seeder only applies to the 'transactions' shard.
+   */
   shards: ['transactions'],
   
+  /**
+   * @async
+   * @method seed
+   * @description Executes the seeding logic for the 'transactions' shard.
+   *              Inserts demo transactions and their associated splits into the database.
+   * @param {import('better-sqlite3').Database} db - The database connection instance for the current shard.
+   * @param {string} shardName - The name of the shard currently being seeded.
+   * @returns {Promise<void>} A Promise that resolves when the seeding is complete.
+   * @throws {Error} If any database operation fails during seeding.
+   */
   async seed(db, shardName) {
     console.log(`Seeding demo transactions for shard: ${shardName}`);
     
-    // Demo transactions for the demo user
+    // Define an array of demo transaction objects.
+    // Account and user IDs are hardcoded for demo purposes.
     const demoTransactions = [
       {
         id: uuidv4(),
@@ -110,7 +131,7 @@ module.exports = {
       }
     ];
     
-    // Insert demo transactions
+    // Prepare the SQL statement for inserting transactions
     const insertTransaction = db.prepare(`
       INSERT INTO transactions (
         id, user_id, account_id, amount, currency, description, category, tags,
@@ -118,23 +139,26 @@ module.exports = {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
+    // Prepare the SQL statement for inserting transaction splits
     const insertSplit = db.prepare(`
       INSERT INTO transaction_splits (id, transaction_id, pouch_id, amount, is_primary)
       VALUES (?, ?, ?, ?, ?)
     `);
     
-    // Demo pouch IDs (these should match the pouches seeder)
+    // Mapping of transaction categories to demo pouch IDs.
+    // These IDs should match those created by the 003_demo_pouches seeder.
     const pouchMapping = {
       'Groceries': 'demo-pouch-1',
       'Entertainment': 'demo-pouch-2',
       'Transportation': 'demo-pouch-3',
-      'Food & Dining': 'demo-pouch-1', // Use groceries pouch
-      'Shopping': 'demo-pouch-2', // Use entertainment pouch
-      'Income': null // No pouch for income
+      'Food & Dining': 'demo-pouch-1', // Example: Using groceries pouch for dining expenses
+      'Shopping': 'demo-pouch-2',     // Example: Using entertainment pouch for shopping
+      'Income': null // Income transactions typically do not have a pouch
     };
     
     for (const transaction of demoTransactions) {
       try {
+        // Insert the transaction record
         insertTransaction.run(
           transaction.id,
           transaction.user_id,
@@ -152,21 +176,23 @@ module.exports = {
         
         console.log(`Created demo transaction: ${transaction.description}`);
         
-        // Create transaction split if applicable
+        // Create transaction split if applicable (only for expense transactions linked to a pouch)
         const pouchId = pouchMapping[transaction.category];
-        if (pouchId && transaction.amount < 0) { // Only for expenses
+        if (pouchId && transaction.amount < 0) { // Only apply splits to negative amounts (expenses)
           insertSplit.run(
-            uuidv4(),
+            uuidv4(), // Generate a new UUID for the split
             transaction.id,
             pouchId,
-            Math.abs(transaction.amount), // Store as positive amount
-            1 // is_primary
+            Math.abs(transaction.amount), // Store the absolute amount for the split
+            1 // Mark as primary split if it's the only one
           );
           console.log(`Created transaction split for pouch: ${pouchId}`);
         }
         
       } catch (error) {
+        // Handle errors during transaction creation.
         console.error(`Failed to create transaction ${transaction.description}:`, error);
+        throw error; // Re-throw to indicate seeding failure
       }
     }
     

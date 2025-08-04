@@ -1,5 +1,9 @@
-// Migration: Create initial tables for all shards
-// This migration creates the base table structure for each shard
+/**
+ * @module 001_create_initial_tables
+ * @description This migration creates the initial table structure for all sharded databases.
+ * It defines the schema for users, accounts, transactions, pouches, and transfers,
+ * including primary keys, foreign keys, unique constraints, and initial indexes.
+ */
 
 /**
  * @module 001_create_initial_tables
@@ -9,17 +13,18 @@
  */
 module.exports = {
   /**
-   * Defines which shards this migration applies to.
-   * If not specified, the migration applies to all shards.
-   * @type {Array<string>}
+   * @property {Array<string>} shards - Defines which shards this migration applies to.
+   *                                  If not specified, the migration applies to all shards.
    */
   shards: ['users', 'accounts', 'transactions', 'pouches', 'transfers'],
   
   /**
-   * Applies the migration to create initial tables.
-   * @param {import('better-sqlite3').Database} db - The database connection for the current shard.
+   * @async
+   * @method up
+   * @description Applies the migration to create initial tables for the specified shard.
+   * @param {import('better-sqlite3').Database} db - The database connection instance for the current shard.
    * @param {string} shardName - The name of the shard currently being migrated.
-   * @returns {Promise<void>}
+   * @returns {Promise<void>} A Promise that resolves when the tables are created.
    */
   async up(db, shardName) {
     console.log(`Creating initial tables for shard: ${shardName}`);
@@ -230,11 +235,13 @@ module.exports = {
   },
   
   /**
-   * Reverts the migration by dropping the initial tables.
-   * Note: SQLite does not support DROP COLUMN, so this method focuses on dropping tables and indexes.
-   * @param {import('better-sqlite3').Database} db - The database connection for the current shard.
+   * @async
+   * @method down
+   * @description Reverts the migration by dropping the initial tables for the specified shard.
+   *              Note: SQLite does not support `DROP COLUMN`, so this method focuses on dropping tables and indexes.
+   * @param {import('better-sqlite3').Database} db - The database connection instance for the current shard.
    * @param {string} shardName - The name of the shard currently being reverted.
-   * @returns {Promise<void>}
+   * @returns {Promise<void>} A Promise that resolves when the tables are dropped.
    */
   async down(db, shardName) {
     console.log(`Dropping initial tables for shard: ${shardName}`);

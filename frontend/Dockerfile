@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 
 # Install dependencies
-RUN bun install --frozen-lockfile
+RUN bun install
 
 # Copy the rest of the application code
 COPY . .
@@ -20,16 +20,20 @@ RUN bun run build
 # Stage 2: Serve the application with Nginx
 FROM nginx:alpine
 
+# Create the directory for the built React app
+RUN mkdir -p /usr/share/nginx/html
+
 # Copy the built React app from the builder stage
-COPY --from=builder /app/export/web /usr/share/nginx/html # Updated path to export/web
+COPY --from=builder /app/export/web /usr/share/nginx/html
+RUN ls -la /usr/share/nginx/html
 
 # Copy custom Nginx configuration (optional, but good practice for SPAs)
 # If you have a custom nginx.conf for history mode or other settings,
 # place it in the same directory as your Dockerfile and uncomment the line below.
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose port 80 for the web server
-EXPOSE 80
+EXPOSE 8080
 
 # Start Nginx
 CMD ["nginx", "-g", "daemon off;"]

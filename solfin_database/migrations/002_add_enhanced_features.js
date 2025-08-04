@@ -1,5 +1,9 @@
-// Migration: Add enhanced features and indexes for better performance
-// This migration adds additional columns and indexes for improved functionality
+/**
+ * @module 002_add_enhanced_features
+ * @description This migration adds enhanced features and indexes to existing tables
+ * across various shards for improved functionality and performance.
+ * It includes adding new columns and creating additional indexes.
+ */
 
 /**
  * @module 002_add_enhanced_features
@@ -9,16 +13,17 @@
  */
 module.exports = {
   /**
-   * Defines which shards this migration applies to.
-   * @type {Array<string>}
+   * @property {Array<string>} shards - Defines which shards this migration applies to.
    */
   shards: ['users', 'accounts', 'transactions', 'pouches', 'transfers'],
   
   /**
-   * Applies the migration to add enhanced features and indexes.
-   * @param {import('better-sqlite3').Database} db - The database connection for the current shard.
+   * @async
+   * @method up
+   * @description Applies the migration to add enhanced features and indexes for the specified shard.
+   * @param {import('better-sqlite3').Database} db - The database connection instance for the current shard.
    * @param {string} shardName - The name of the shard currently being migrated.
-   * @returns {Promise<void>}
+   * @returns {Promise<void>} A Promise that resolves when the features and indexes are added.
    */
   async up(db, shardName) {
     console.log(`Adding enhanced features for shard: ${shardName}`);
@@ -167,12 +172,14 @@ module.exports = {
   },
   
   /**
-   * Reverts the migration by dropping the added indexes.
-   * Note: SQLite does not support DROP COLUMN, so new columns added by this migration
-   * cannot be directly removed by a 'down' migration.
-   * @param {import('better-sqlite3').Database} db - The database connection for the current shard.
+   * @async
+   * @method down
+   * @description Reverts the migration by dropping the added indexes for the specified shard.
+   *              Note: SQLite does not support `DROP COLUMN`, so new columns added by this migration
+   *              cannot be directly removed by a 'down' migration.
+   * @param {import('better-sqlite3').Database} db - The database connection instance for the current shard.
    * @param {string} shardName - The name of the shard currently being reverted.
-   * @returns {Promise<void>}
+   * @returns {Promise<void>} A Promise that resolves when the indexes are dropped.
    */
   async down(db, shardName) {
     console.log(`Removing enhanced features for shard: ${shardName}`);

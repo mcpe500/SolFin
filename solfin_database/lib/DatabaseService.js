@@ -2,8 +2,20 @@ const ShardManager = require('./ShardManager');
 const MigrationManager = require('./MigrationManager');
 const SeederManager = require('./SeederManager');
 const { v4: uuidv4 } = require('uuid');
+const schemas = require('../config/schemas'); // Import externalized schemas
 
+/**
+ * @class DatabaseService
+ * @description Centralized service for interacting with the sharded SQLite databases.
+ *              Manages initialization of shards, migrations, seeders, and provides
+ *              generic CRUD operations as well as specialized data access methods.
+ */
 class DatabaseService {
+  /**
+   * @constructor
+   * @description Initializes the DatabaseService, including the ShardManager,
+   *              MigrationManager, and SeederManager. Also ensures initial tables are created.
+   */
   constructor() {
     console.log('DatabaseService: Initializing...');
     this.shardManager = new ShardManager();
@@ -13,132 +25,16 @@ class DatabaseService {
     console.log('DatabaseService: Initialization complete.');
   }
 
+  /**
+   * @async
+   * @method initializeTables
+   * @description Initializes the database schema for all configured shards by executing
+   *              the SQL defined in the external `schemas` module.
+   *              Each schema creation is wrapped in a transaction for atomicity.
+   */
   async initializeTables() {
     console.log('DatabaseService: Initializing tables for all shards...');
-    // Initialize tables for each shard
-    const schemas = {
-      users: `
-        CREATE TABLE IF NOT EXISTS users (
-          id TEXT PRIMARY KEY,
-          email TEXT UNIQUE NOT NULL,
-          password_hash TEXT NOT NULL,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-        
-        CREATE TABLE IF NOT EXISTS user_sessions (
-          id TEXT PRIMARY KEY,
-          user_id TEXT NOT NULL,
-          token TEXT NOT NULL,
-          expires_at DATETIME NOT NULL,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (user_id) REFERENCES users(id)
-        );
-        
-        CREATE TABLE IF NOT EXISTS user_preferences (
-          id TEXT PRIMARY KEY,
-          user_id TEXT NOT NULL,
-          key TEXT NOT NULL,
-          value TEXT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (user_id) REFERENCES users(id)
-        );
-      `,
-      
-      accounts: `
-        CREATE TABLE IF NOT EXISTS accounts (
-          id TEXT PRIMARY KEY,
-          user_id TEXT NOT NULL,
-          name TEXT NOT NULL,
-          type TEXT NOT NULL,
-          currency TEXT NOT NULL,
-          initial_balance DECIMAL(15,2) DEFAULT 0,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-        
-        CREATE TABLE IF NOT EXISTS account_balances (
-          id TEXT PRIMARY KEY,
-          account_id TEXT NOT NULL,
-          balance DECIMAL(15,2) NOT NULL,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (account_id) REFERENCES accounts(id)
-        );
-      `,
-      
-      transactions: `
-        CREATE TABLE IF NOT EXISTS transactions (
-          id TEXT PRIMARY KEY,
-          user_id TEXT NOT NULL,
-          account_id TEXT NOT NULL,
-          amount DECIMAL(15,2) NOT NULL,
-          currency TEXT NOT NULL,
-          description TEXT,
-          category TEXT,
-          tags TEXT,
-          date DATETIME NOT NULL,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-        
-        CREATE TABLE IF NOT EXISTS transaction_splits (
-          id TEXT PRIMARY KEY,
-          transaction_id TEXT NOT NULL,
-          pouch_id TEXT NOT NULL,
-          amount DECIMAL(15,2) NOT NULL,
-          FOREIGN KEY (transaction_id) REFERENCES transactions(id)
-        );
-      `,
-      
-      pouches: `
-        CREATE TABLE IF NOT EXISTS pouches (
-          id TEXT PRIMARY KEY,
-          user_id TEXT NOT NULL,
-          name TEXT NOT NULL,
-          type TEXT DEFAULT 'private',
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-        
-        CREATE TABLE IF NOT EXISTS goals (
-          id TEXT PRIMARY KEY,
-          user_id TEXT NOT NULL,
-          pouch_id TEXT,
-          title TEXT NOT NULL,
-          target_amount DECIMAL(15,2) NOT NULL,
-          target_date DATE,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (pouch_id) REFERENCES pouches(id)
-        );
-        
-        CREATE TABLE IF NOT EXISTS pouch_shares (
-          id TEXT PRIMARY KEY,
-          pouch_id TEXT NOT NULL,
-          user_id TEXT NOT NULL,
-          role TEXT NOT NULL,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (pouch_id) REFERENCES pouches(id)
-        );
-      `,
-      
-      transfers: `
-        CREATE TABLE IF NOT EXISTS transfers (
-          id TEXT PRIMARY KEY,
-          user_id TEXT NOT NULL,
-          from_account_id TEXT NOT NULL,
-          to_account_id TEXT NOT NULL,
-          amount DECIMAL(15,2) NOT NULL,
-          currency TEXT NOT NULL,
-          description TEXT,
-          date DATETIME NOT NULL,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-      `
-    };
-
-    // Execute schema creation for each shard
+    // Execute schema creation for each shard using the imported schemas
     for (const [shardName, schema] of Object.entries(schemas)) {
       try {
         const db = this.shardManager.getWriteConnection(shardName);
@@ -155,10 +51,12 @@ class DatabaseService {
   }
 
   /**
-   * Basic validation for data objects.
-   * @param {Object} data - The data object to validate.
+   * @private
+   * @method _validateData
+   * @description Basic validation for data objects used in CRUD operations.
+   * @param {object} data - The data object to validate.
    * @param {string} operation - The operation being performed (e.g., 'create', 'update').
-   * @throws {Error} If the data is invalid.
+   * @throws {Error} If the data is invalid (null, not an object, or empty).
    */
   _validateData(data, operation) {
     if (!data || typeof data !== 'object' || Object.keys(data).length === 0) {
@@ -167,6 +65,16 @@ class DatabaseService {
   }
 
   // Generic CRUD operations
+
+  /**
+   * @async
+   * @method create
+   * @description Creates a new record in the specified table within its respective shard.
+   * @param {string} table - The name of the table (e.g., 'users', 'accounts').
+   * @param {object} data - The data payload for the new record. A unique ID will be generated.
+   * @returns {Promise<string>} A Promise that resolves with the ID of the newly created record.
+   * @throws {Error} If the data is invalid or the database operation fails.
+   */
   async create(table, data) {
     console.log(`DatabaseService: Creating record in table '${table}'.`);
     this._validateData(data, 'create'); // Validate input data
@@ -188,6 +96,15 @@ class DatabaseService {
     }
   }
 
+  /**
+   * @async
+   * @method read
+   * @description Reads a single record from the specified table by its ID.
+   * @param {string} table - The name of the table.
+   * @param {string} id - The ID of the record to read.
+   * @returns {Promise<object|null>} A Promise that resolves with the record data, or `null` if not found.
+   * @throws {Error} If the database operation fails.
+   */
   async read(table, id) {
     console.log(`DatabaseService: Reading record with ID '${id}' from table '${table}'.`);
     const sql = `SELECT * FROM ${table} WHERE id = ?`;
@@ -201,6 +118,16 @@ class DatabaseService {
     }
   }
 
+  /**
+   * @async
+   * @method update
+   * @description Updates an existing record in the specified table by its ID.
+   * @param {string} table - The name of the table.
+   * @param {string} id - The ID of the record to update.
+   * @param {object} data - The partial data to update the record with.
+   * @returns {Promise<void>} A Promise that resolves when the update is complete.
+   * @throws {Error} If the data is invalid or the database operation fails.
+   */
   async update(table, id, data) {
     console.log(`DatabaseService: Updating record with ID '${id}' in table '${table}'.`);
     this._validateData(data, 'update'); // Validate input data
@@ -220,6 +147,15 @@ class DatabaseService {
     }
   }
 
+  /**
+   * @async
+   * @method delete
+   * @description Deletes a record from the specified table by its ID.
+   * @param {string} table - The name of the table.
+   * @param {string} id - The ID of the record to delete.
+   * @returns {Promise<void>} A Promise that resolves when the deletion is complete.
+   * @throws {Error} If the database operation fails.
+   */
   async delete(table, id) {
     console.log(`DatabaseService: Deleting record with ID '${id}' from table '${table}'.`);
     const sql = `DELETE FROM ${table} WHERE id = ?`;
@@ -232,6 +168,15 @@ class DatabaseService {
     }
   }
 
+  /**
+   * @async
+   * @method query
+   * @description Queries the specified table with optional filters.
+   * @param {string} table - The name of the table.
+   * @param {object} [filters={}] - An object containing key-value pairs for filtering.
+   * @returns {Promise<Array<object>>} A Promise that resolves with an array of matching records.
+   * @throws {Error} If the database operation fails.
+   */
   async query(table, filters = {}) {
     console.log(`DatabaseService: Querying table '${table}' with filters:`, filters);
     let sql = `SELECT * FROM ${table}`;
@@ -256,6 +201,15 @@ class DatabaseService {
   }
 
   // Specialized methods for complex operations
+
+  /**
+   * @async
+   * @method getUserAccounts
+   * @description Retrieves all accounts associated with a specific user ID.
+   * @param {string} userId - The unique identifier of the user.
+   * @returns {Promise<Array<object>>} A Promise that resolves with an array of account objects.
+   * @throws {Error} If the database operation fails.
+   */
   async getUserAccounts(userId) {
     console.log(`DatabaseService: Getting accounts for user ID: ${userId}`);
     try {
@@ -268,6 +222,15 @@ class DatabaseService {
     }
   }
 
+  /**
+   * @async
+   * @method getUserTransactions
+   * @description Retrieves a limited number of transactions for a specific user, sorted by date.
+   * @param {string} userId - The unique identifier of the user.
+   * @param {number} [limit=100] - The maximum number of transactions to retrieve. Defaults to 100.
+   * @returns {Promise<Array<object>>} A Promise that resolves with an array of transaction objects.
+   * @throws {Error} If the database operation fails.
+   */
   async getUserTransactions(userId, limit = 100) {
     console.log(`DatabaseService: Getting transactions for user ID: ${userId} with limit: ${limit}`);
     const sql = `SELECT * FROM transactions WHERE user_id = ? ORDER BY date DESC LIMIT ?`;
@@ -281,6 +244,15 @@ class DatabaseService {
     }
   }
 
+  /**
+   * @async
+   * @method createTransactionWithSplits
+   * @description Creates a new transaction along with its associated splits in a single atomic operation.
+   * @param {object} transactionData - The main transaction data.
+   * @param {Array<object>} splits - An array of transaction split data. Each split object should contain `pouch_id` and `amount`.
+   * @returns {Promise<string>} A Promise that resolves with the ID of the newly created transaction.
+   * @throws {Error} If the transaction data or splits data is invalid, or if the database transaction fails.
+   */
   async createTransactionWithSplits(transactionData, splits) {
     console.log('DatabaseService: Creating transaction with splits.');
     this._validateData(transactionData, 'createTransactionWithSplits - transactionData');
@@ -308,7 +280,7 @@ class DatabaseService {
         transactionData.date
       ]
     });
-
+ 
     // Create splits
     splits.forEach(split => {
       this._validateData(split, 'createTransactionWithSplits - split');
@@ -330,6 +302,15 @@ class DatabaseService {
   }
 
   // Migration methods
+
+  /**
+   * @async
+   * @method runMigrations
+   * @description Runs pending database migrations for all shards or a specified shard.
+   * @param {string|null} [shardName=null] - The name of the specific shard to migrate. If `null`, migrations will be run for all shards.
+   * @returns {Promise<void>} A Promise that resolves when migrations are completed.
+   * @throws {Error} If running migrations fails for any reason.
+   */
   async runMigrations(shardName = null) {
     console.log(`DatabaseService: Running migrations for shard: ${shardName || 'all'}`);
     try {
@@ -344,6 +325,14 @@ class DatabaseService {
     }
   }
 
+  /**
+   * @async
+   * @method rollbackMigration
+   * @description Rolls back the last executed migration for a specific shard.
+   * @param {string} shardName - The name of the shard to rollback the migration for.
+   * @returns {Promise<void>} A Promise that resolves when the migration has been rolled back.
+   * @throws {Error} If rolling back the migration fails.
+   */
   async rollbackMigration(shardName) {
     console.log(`DatabaseService: Rolling back migration for shard: ${shardName}`);
     try {
@@ -354,12 +343,26 @@ class DatabaseService {
     }
   }
 
+  /**
+   * @method getMigrationStatus
+   * @description Retrieves the current migration status for all configured shards.
+   * @returns {object} An object where keys are shard names and values contain their migration status (executed, pending, total, lastExecuted).
+   */
   getMigrationStatus() {
     console.log('DatabaseService: Getting migration status.');
     return this.migrationManager.getMigrationStatus();
   }
 
   // Seeder methods
+
+  /**
+   * @async
+   * @method runSeeders
+   * @description Runs pending database seeders for all shards or a specified shard.
+   * @param {string|null} [shardName=null] - The name of the specific shard to seed. If `null`, seeders will be run for all shards.
+   * @returns {Promise<void>} A Promise that resolves when seeders are completed.
+   * @throws {Error} If running seeders fails for any reason.
+   */
   async runSeeders(shardName = null) {
     console.log(`DatabaseService: Running seeders for shard: ${shardName || 'all'}`);
     try {
@@ -374,6 +377,15 @@ class DatabaseService {
     }
   }
 
+  /**
+   * @async
+   * @method runSeeder
+   * @description Runs a specific seeder for a given shard.
+   * @param {string} shardName - The name of the shard to run the seeder on.
+   * @param {string} seederName - The name of the seeder to run (e.g., '001_demo_users').
+   * @returns {Promise<void>} A Promise that resolves when the seeder is completed.
+   * @throws {Error} If the seeder file is not found or if the seeder fails during execution.
+   */
   async runSeeder(shardName, seederName) {
     console.log(`DatabaseService: Running seeder '${seederName}' for shard: ${shardName}`);
     try {
@@ -384,6 +396,15 @@ class DatabaseService {
     }
   }
 
+  /**
+   * @async
+   * @method resetSeeders
+   * @description Resets (clears records of) executed seeders for a specific shard.
+   *              This effectively marks all seeders as unexecuted for that shard.
+   * @param {string} shardName - The name of the shard to reset seeders for.
+   * @returns {Promise<void>} A Promise that resolves when the seeders have been reset.
+   * @throws {Error} If the reset operation fails.
+   */
   async resetSeeders(shardName) {
     console.log(`DatabaseService: Resetting seeders for shard: ${shardName}`);
     try {
@@ -394,6 +415,14 @@ class DatabaseService {
     }
   }
 
+  /**
+   * @async
+   * @method refreshSeeders
+   * @description Resets and then re-runs all seeders for a specific shard.
+   * @param {string} shardName - The name of the shard to refresh seeders for.
+   * @returns {Promise<void>} A Promise that resolves when the seeders have been refreshed.
+   * @throws {Error} If refreshing seeders fails.
+   */
   async refreshSeeders(shardName) {
     console.log(`DatabaseService: Refreshing seeders for shard: ${shardName}`);
     try {
@@ -404,12 +433,26 @@ class DatabaseService {
     }
   }
 
+  /**
+   * @method getSeederStatus
+   * @description Retrieves the current seeder execution status for all configured shards.
+   * @returns {object} An object where keys are shard names and values contain their seeder status.
+   */
   getSeederStatus() {
     console.log('DatabaseService: Getting seeder status.');
     return this.seederManager.getSeederStatus();
   }
 
-  // Health check for all shards
+  /**
+   * @async
+   * @method healthCheck
+   * @description Performs a health check across all configured database shards.
+   *              It attempts to execute a simple query on each shard's write connection
+   *              to verify its connectivity and responsiveness.
+   * @returns {Promise<object>} A Promise that resolves with an object containing the health status
+   *                            of each shard (e.g., `{ users: 'healthy', accounts: 'unhealthy' }`).
+   * @throws {Error} If there's a critical error preventing the health check from completing.
+   */
   async healthCheck() {
     console.log('DatabaseService: Performing health check for all shards.');
     const health = {};
@@ -429,6 +472,12 @@ class DatabaseService {
     return health;
   }
 
+  /**
+   * @method close
+   * @description Closes all open database connections managed by the ShardManager.
+   *              This should be called when the DatabaseService is no longer needed
+   *              to free up resources.
+   */
   close() {
     console.log('DatabaseService: Closing database connections.');
     this.shardManager.close();

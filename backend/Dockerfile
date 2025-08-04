@@ -10,7 +10,7 @@ COPY package.json ./
 # Install dependencies using Bun
 # Removed --frozen-lockfile to allow lockfile updates during build.
 # It's recommended to commit an up-to-date bun.lockb locally.
-RUN bun install --production
+RUN bun install --production # Invalidate cache
 
 # Copy the rest of the application code
 COPY . .

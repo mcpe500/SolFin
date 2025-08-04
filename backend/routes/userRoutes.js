@@ -1,6 +1,5 @@
 const UserService = require('../services/UserService');
-
-const UserService = require('../services/UserService');
+const { UserExistsError, InvalidCredentialsError } = require('../services/UserService');
 
 async function userRoutes(fastify, options) {
   // Ensure UserService is available
@@ -176,16 +175,48 @@ async function userRoutes(fastify, options) {
   };
 
   // Register new user
+  /**
+   * Route for user registration.
+   * @name POST /users/register
+   * @function
+   * @param {object} request - The Fastify request object.
+   * @param {object} reply - The Fastify reply object.
+   * @returns {Promise<void>}
+   */
   fastify.post('/users/register', { schema: userRegisterSchema }, async (request, reply) => {
-    const user = await fastify.userService.registerUser(request.body);
-    reply.code(201).send(user);
+    try {
+      const user = await fastify.userService.registerUser(request.body);
+      reply.code(201).send(user);
+    } catch (error) {
+      if (error instanceof UserExistsError) {
+        reply.code(error.statusCode).send({ statusCode: error.statusCode, error: error.name, message: error.message });
+      } else {
+        throw error; // Re-throw other errors for the global error handler
+      }
+    }
   });
 
   // User login
+  /**
+   * Route for user login.
+   * @name POST /users/login
+   * @function
+   * @param {object} request - The Fastify request object.
+   * @param {object} reply - The Fastify reply object.
+   * @returns {Promise<void>}
+   */
   fastify.post('/users/login', { schema: userLoginSchema }, async (request, reply) => {
     const { email, password } = request.body;
-    const { user, token } = await fastify.userService.loginUser(email, password);
-    reply.code(200).send({ user, token });
+    try {
+      const { user, token } = await fastify.userService.loginUser(email, password);
+      reply.code(200).send({ user, token });
+    } catch (error) {
+      if (error instanceof InvalidCredentialsError) {
+        reply.code(error.statusCode).send({ statusCode: error.statusCode, error: error.name, message: error.message });
+      } else {
+        throw error; // Re-throw other errors for the global error handler
+      }
+    }
   });
 
   // Get user profile
@@ -196,7 +227,8 @@ async function userRoutes(fastify, options) {
     }
     const user = await fastify.userService.getUserProfile(request.params.id);
     if (!user) {
-      throw new Error('User not found');
+      reply.code(404).send({ statusCode: 404, error: 'Not Found', message: 'User not found' });
+      return;
     }
     reply.code(200).send(user);
   });

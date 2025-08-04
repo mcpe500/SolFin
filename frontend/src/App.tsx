@@ -76,10 +76,19 @@ const App: React.FC = () => {
   const darkMode = useSelector((state: RootState) => state.user.darkMode);
   const loadingConfData = useSelector((state: RootState) => state.sessions.loading);
 
+  /**
+   * @description useEffect hook to load initial user data and conference data when the component mounts.
+   *              It dispatches Redux actions to fetch necessary data for the application.
+   *              `loadUserData` fetches user-specific settings (like dark mode preference) and authentication status.
+   *              `loadConfData` fetches general application data (like schedule, speakers, locations).
+   * @param {AppDispatch} dispatch - The Redux dispatch function.
+   */
   useEffect(() => {
     dispatch(loadUserData());
     dispatch(loadConfData());
-    // eslint-disable-next-line
+    // The `dispatch` function is a stable reference provided by React-Redux,
+    // so including it in the dependency array is correct and won't cause
+    // unnecessary re-renders.
   }, [dispatch]);
 
   // Render a loading indicator or null while data is loading

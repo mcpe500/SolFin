@@ -46,10 +46,10 @@ class DatabaseRepository {
 
   /**
    * Creates a new record in the specified table.
-   * @param {string} table - The name of the table.
-   * @param {object} data - The data to create.
-   * @returns {Promise<object>} The created record's data.
-   * @throws {Error} If the creation fails.
+   * @param {string} table - The name of the table (e.g., 'users', 'accounts').
+   * @param {object} data - The data payload for the new record.
+   * @returns {Promise<object>} A Promise that resolves with the data of the newly created record.
+   * @throws {Error} If the API request fails or the database service returns an error.
    */
   async create(table, data) {
     try {
@@ -62,10 +62,10 @@ class DatabaseRepository {
 
   /**
    * Reads a record from the specified table by its ID.
-   * @param {string} table - The name of the table.
-   * @param {string} id - The ID of the record to read.
-   * @returns {Promise<object|null>} The record data, or null if not found.
-   * @throws {Error} If the read operation fails for reasons other than 404.
+   * @param {string} table - The name of the table (e.g., 'users', 'transactions').
+   * @param {string} id - The unique identifier of the record to retrieve.
+   * @returns {Promise<object|null>} A Promise that resolves with the record data if found, or `null` if not found (HTTP 404).
+   * @throws {Error} If the API request fails for reasons other than a 404 (e.g., network error, server error).
    */
   async read(table, id) {
     try {
@@ -82,10 +82,10 @@ class DatabaseRepository {
   /**
    * Updates a record in the specified table by its ID.
    * @param {string} table - The name of the table.
-   * @param {string} id - The ID of the record to update.
-   * @param {object} data - The data to update.
-   * @returns {Promise<object>} The updated record's data.
-   * @throws {Error} If the update fails.
+   * @param {string} id - The unique identifier of the record to update.
+   * @param {object} data - The partial data to apply to the record.
+   * @returns {Promise<object>} A Promise that resolves with the updated record data.
+   * @throws {Error} If the API request fails or the database service returns an error.
    */
   async update(table, id, data) {
     try {
@@ -99,9 +99,9 @@ class DatabaseRepository {
   /**
    * Deletes a record from the specified table by its ID.
    * @param {string} table - The name of the table.
-   * @param {string} id - The ID of the record to delete.
-   * @returns {Promise<object>} The response data from the deletion.
-   * @throws {Error} If the deletion fails.
+   * @param {string} id - The unique identifier of the record to delete.
+   * @returns {Promise<object>} A Promise that resolves with the response data from the deletion operation.
+   * @throws {Error} If the API request fails or the database service returns an error.
    */
   async delete(table, id) {
     try {
@@ -115,9 +115,9 @@ class DatabaseRepository {
   /**
    * Queries the specified table with optional filters.
    * @param {string} table - The name of the table.
-   * @param {object} [filters={}] - An object containing key-value pairs for filtering.
-   * @returns {Promise<Array<object>>} An array of matching records.
-   * @throws {Error} If the query fails.
+   * @param {object} [filters={}] - An optional object containing key-value pairs for filtering the records.
+   * @returns {Promise<Array<object>>} A Promise that resolves with an array of matching records.
+   * @throws {Error} If the API request fails or the database service returns an error.
    */
   async query(table, filters = {}) {
     try {
@@ -132,8 +132,9 @@ class DatabaseRepository {
 
   /**
    * Creates a new account.
-   * @param {object} accountData - The account data.
-   * @returns {Promise<object>} The created account data.
+   * @param {object} accountData - The data for the new account (e.g., user_id, name, type, currency, initial_balance).
+   * @returns {Promise<object>} A Promise that resolves with the data of the newly created account.
+   * @throws {Error} If the account creation fails.
    */
   async createAccount(accountData) {
     return await this.create('accounts', accountData);
@@ -141,8 +142,9 @@ class DatabaseRepository {
 
   /**
    * Retrieves an account by ID.
-   * @param {string} accountId - The ID of the account.
-   * @returns {Promise<object|null>} The account data, or null if not found.
+   * @param {string} accountId - The unique identifier of the account to retrieve.
+   * @returns {Promise<object|null>} A Promise that resolves with the account data if found, or `null` if not found.
+   * @throws {Error} If fetching the account fails for reasons other than a 404.
    */
   async getAccount(accountId) {
     return await this.read('accounts', accountId);
@@ -150,9 +152,10 @@ class DatabaseRepository {
 
   /**
    * Updates an account by ID.
-   * @param {string} accountId - The ID of the account.
-   * @param {object} accountData - The data to update.
-   * @returns {Promise<object>} The updated account data.
+   * @param {string} accountId - The unique identifier of the account to update.
+   * @param {object} accountData - The partial data to update for the account.
+   * @returns {Promise<object>} A Promise that resolves with the updated account data.
+   * @throws {Error} If updating the account fails.
    */
   async updateAccount(accountId, accountData) {
     return await this.update('accounts', accountId, accountData);
@@ -160,8 +163,9 @@ class DatabaseRepository {
 
   /**
    * Deletes an account by ID.
-   * @param {string} accountId - The ID of the account.
-   * @returns {Promise<object>} The response data from the deletion.
+   * @param {string} accountId - The unique identifier of the account to delete.
+   * @returns {Promise<object>} A Promise that resolves with the response from the deletion operation.
+   * @throws {Error} If deleting the account fails.
    */
   async deleteAccount(accountId) {
     return await this.delete('accounts', accountId);
@@ -169,9 +173,9 @@ class DatabaseRepository {
 
   /**
    * Retrieves all accounts for a specific user.
-   * @param {string} userId - The ID of the user.
-   * @returns {Promise<Array<object>>} An array of user's accounts.
-   * @throws {Error} If fetching user accounts fails.
+   * @param {string} userId - The unique identifier of the user whose accounts are to be retrieved.
+   * @returns {Promise<Array<object>>} A Promise that resolves with an array of account objects belonging to the user.
+   * @throws {Error} If the API request fails or the database service returns an error.
    */
   async getUserAccounts(userId) {
     try {
@@ -186,8 +190,9 @@ class DatabaseRepository {
 
   /**
    * Creates a new transaction.
-   * @param {object} transactionData - The transaction data.
-   * @returns {Promise<object>} The created transaction data.
+   * @param {object} transactionData - The data for the new transaction.
+   * @returns {Promise<object>} A Promise that resolves with the data of the newly created transaction.
+   * @throws {Error} If the transaction creation fails.
    */
   async createTransaction(transactionData) {
     return await this.create('transactions', transactionData);
@@ -196,8 +201,8 @@ class DatabaseRepository {
   /**
    * Creates a transaction along with its splits.
    * @param {object} transactionData - The main transaction data.
-   * @param {Array<object>} splits - An array of transaction split data.
-   * @returns {Promise<object>} The response data from the transaction creation.
+   * @param {Array<object>} splits - An array of transaction split data associated with the main transaction.
+   * @returns {Promise<object>} A Promise that resolves with the response data indicating the success of the transaction and splits creation.
    * @throws {Error} If the transaction creation with splits fails.
    */
   async createTransactionWithSplits(transactionData, splits) {
@@ -214,10 +219,10 @@ class DatabaseRepository {
 
   /**
    * Retrieves transactions for a specific user.
-   * @param {string} userId - The ID of the user.
-   * @param {number} [limit=100] - The maximum number of transactions to retrieve.
-   * @returns {Promise<Array<object>>} An array of user's transactions.
-   * @throws {Error} If fetching user transactions fails.
+   * @param {string} userId - The unique identifier of the user whose transactions are to be retrieved.
+   * @param {number} [limit=100] - The maximum number of transactions to retrieve. Defaults to 100.
+   * @returns {Promise<Array<object>>} A Promise that resolves with an array of transaction objects belonging to the user.
+   * @throws {Error} If the API request fails or the database service returns an error.
    */
   async getUserTransactions(userId, limit = 100) {
     try {
@@ -232,8 +237,9 @@ class DatabaseRepository {
 
   /**
    * Creates a new pouch.
-   * @param {object} pouchData - The pouch data.
-   * @returns {Promise<object>} The created pouch data.
+   * @param {object} pouchData - The data for the new pouch.
+   * @returns {Promise<object>} A Promise that resolves with the data of the newly created pouch.
+   * @throws {Error} If the pouch creation fails.
    */
   async createPouch(pouchData) {
     return await this.create('pouches', pouchData);
@@ -241,8 +247,9 @@ class DatabaseRepository {
 
   /**
    * Retrieves all pouches for a specific user.
-   * @param {string} userId - The ID of the user.
-   * @returns {Promise<Array<object>>} An array of user's pouches.
+   * @param {string} userId - The unique identifier of the user whose pouches are to be retrieved.
+   * @returns {Promise<Array<object>>} A Promise that resolves with an array of pouch objects belonging to the user.
+   * @throws {Error} If fetching user pouches fails.
    */
   async getUserPouches(userId) {
     return await this.query('pouches', { user_id: userId });
@@ -252,8 +259,9 @@ class DatabaseRepository {
 
   /**
    * Creates a new goal.
-   * @param {object} goalData - The goal data.
-   * @returns {Promise<object>} The created goal data.
+   * @param {object} goalData - The data for the new goal.
+   * @returns {Promise<object>} A Promise that resolves with the data of the newly created goal.
+   * @throws {Error} If the goal creation fails.
    */
   async createGoal(goalData) {
     return await this.create('goals', goalData);
@@ -261,8 +269,9 @@ class DatabaseRepository {
 
   /**
    * Retrieves all goals for a specific user.
-   * @param {string} userId - The ID of the user.
-   * @returns {Promise<Array<object>>} An array of user's goals.
+   * @param {string} userId - The unique identifier of the user whose goals are to be retrieved.
+   * @returns {Promise<Array<object>>} A Promise that resolves with an array of goal objects belonging to the user.
+   * @throws {Error} If fetching user goals fails.
    */
   async getUserGoals(userId) {
     return await this.query('goals', { user_id: userId });
@@ -272,8 +281,9 @@ class DatabaseRepository {
 
   /**
    * Creates a new transfer.
-   * @param {object} transferData - The transfer data.
-   * @returns {Promise<object>} The created transfer data.
+   * @param {object} transferData - The data for the new transfer.
+   * @returns {Promise<object>} A Promise that resolves with the data of the newly created transfer.
+   * @throws {Error} If the transfer creation fails.
    */
   async createTransfer(transferData) {
     return await this.create('transfers', transferData);
@@ -281,8 +291,9 @@ class DatabaseRepository {
 
   /**
    * Retrieves all transfers for a specific user.
-   * @param {string} userId - The ID of the user.
-   * @returns {Promise<Array<object>>} An array of user's transfers.
+   * @param {string} userId - The unique identifier of the user whose transfers are to be retrieved.
+   * @returns {Promise<Array<object>>} A Promise that resolves with an array of transfer objects belonging to the user.
+   * @throws {Error} If fetching user transfers fails.
    */
   async getUserTransfers(userId) {
     return await this.query('transfers', { user_id: userId });
@@ -292,8 +303,9 @@ class DatabaseRepository {
 
   /**
    * Creates a new user.
-   * @param {object} userData - The user data.
-   * @returns {Promise<object>} The created user data.
+   * @param {object} userData - The data for the new user (e.g., email, password_hash, first_name, last_name).
+   * @returns {Promise<object>} A Promise that resolves with the data of the newly created user.
+   * @throws {Error} If the user creation fails.
    */
   async createUser(userData) {
     return await this.create('users', userData);
@@ -301,8 +313,9 @@ class DatabaseRepository {
 
   /**
    * Retrieves a user by email.
-   * @param {string} email - The email of the user.
-   * @returns {Promise<object|null>} The user data, or null if not found.
+   * @param {string} email - The email address of the user to retrieve.
+   * @returns {Promise<object|null>} A Promise that resolves with the user data if found, or `null` if not found.
+   * @throws {Error} If querying for the user by email fails.
    */
   async getUserByEmail(email) {
     const users = await this.query('users', { email: email });
@@ -313,9 +326,9 @@ class DatabaseRepository {
 
   /**
    * Runs database migrations.
-   * @param {string|null} [shard=null] - The name of the shard to migrate, or null for all shards.
-   * @returns {Promise<object>} The response data from the migration operation.
-   * @throws {Error} If running migrations fails.
+   * @param {string} [shard=null] - Optional. The name of the specific shard to migrate. If `null`, migrations will be run for all shards.
+   * @returns {Promise<object>} A Promise that resolves with the response data from the migration operation.
+   * @throws {Error} If the API request fails or running migrations on the database service encounters an error.
    */
   async runMigrations(shard = null) {
     try {
@@ -328,9 +341,9 @@ class DatabaseRepository {
 
   /**
    * Rolls back the last database migration.
-   * @param {string} shard - The name of the shard to rollback.
-   * @returns {Promise<object>} The response data from the rollback operation.
-   * @throws {Error} If rolling back migration fails.
+   * @param {string} shard - The name of the shard for which to roll back the last migration.
+   * @returns {Promise<object>} A Promise that resolves with the response data from the rollback operation.
+   * @throws {Error} If the API request fails or rolling back the migration on the database service encounters an error.
    */
   async rollbackMigration(shard) {
     try {
@@ -343,8 +356,8 @@ class DatabaseRepository {
 
   /**
    * Retrieves the status of database migrations.
-   * @returns {Promise<object>} The migration status data.
-   * @throws {Error} If fetching migration status fails.
+   * @returns {Promise<object>} A Promise that resolves with the migration status data for all shards.
+   * @throws {Error} If the API request fails or fetching the migration status from the database service encounters an error.
    */
   async getMigrationStatus() {
     try {
@@ -359,10 +372,10 @@ class DatabaseRepository {
 
   /**
    * Runs database seeders.
-   * @param {string|null} [shard=null] - The name of the shard to seed, or null for all shards.
-   * @param {string|null} [seeder=null] - The name of a specific seeder to run.
-   * @returns {Promise<object>} The response data from the seeder operation.
-   * @throws {Error} If running seeders fails.
+   * @param {string} [shard=null] - Optional. The name of the specific shard to seed. If `null`, seeders will be run for all shards.
+   * @param {string} [seeder=null] - Optional. The name of a specific seeder file to run within the specified shard or across all shards.
+   * @returns {Promise<object>} A Promise that resolves with the response data from the seeder operation.
+   * @throws {Error} If the API request fails or running seeders on the database service encounters an error.
    */
   async runSeeders(shard = null, seeder = null) {
     try {
@@ -375,9 +388,9 @@ class DatabaseRepository {
 
   /**
    * Resets database seeders for a shard.
-   * @param {string} shard - The name of the shard to reset.
-   * @returns {Promise<object>} The response data from the seeder reset operation.
-   * @throws {Error} If resetting seeders fails.
+   * @param {string} shard - The name of the shard for which to reset seeders.
+   * @returns {Promise<object>} A Promise that resolves with the response data from the seeder reset operation.
+   * @throws {Error} If the API request fails or resetting seeders on the database service encounters an error.
    */
   async resetSeeders(shard) {
     try {
@@ -390,9 +403,9 @@ class DatabaseRepository {
 
   /**
    * Refreshes database seeders for a shard (resets and then runs).
-   * @param {string} shard - The name of the shard to refresh.
-   * @returns {Promise<object>} The response data from the seeder refresh operation.
-   * @throws {Error} If refreshing seeders fails.
+   * @param {string} shard - The name of the shard for which to refresh seeders (reset and then run).
+   * @returns {Promise<object>} A Promise that resolves with the response data from the seeder refresh operation.
+   * @throws {Error} If the API request fails or refreshing seeders on the database service encounters an error.
    */
   async refreshSeeders(shard) {
     try {
@@ -405,8 +418,8 @@ class DatabaseRepository {
 
   /**
    * Retrieves the status of database seeders.
-   * @returns {Promise<object>} The seeder status data.
-   * @throws {Error} If fetching seeder status fails.
+   * @returns {Promise<object>} A Promise that resolves with the seeder status data for all shards.
+   * @throws {Error} If the API request fails or fetching the seeder status from the database service encounters an error.
    */
   async getSeederStatus() {
     try {

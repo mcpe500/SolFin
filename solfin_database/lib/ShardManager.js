@@ -9,27 +9,34 @@ const config = require('../config/database');
  * This manager is responsible for determining the correct shard for a given table
  * and executing database operations.
  */
+/**
+ * @class ShardManager
+ * @description Manages sharded SQLite database connections, including read and write operations,
+ *              and provides load balancing for read replicas. This manager is responsible
+ *              for determining the correct shard for a given table and executing database operations.
+ */
 class ShardManager {
   /**
-   * Creates an instance of ShardManager.
-   * Initializes internal maps for shards, read replicas, and write connections,
-   * then proceeds to initialize all configured shards.
+   * @constructor
+   * @description Initializes an instance of ShardManager.
+   *              Sets up internal maps for shard configurations, read replicas, and write connections,
+   *              and then proceeds to initialize all configured shards.
    */
   constructor() {
     console.log('ShardManager: Initializing...');
     /**
-     * Map to store shard configurations.
-     * @type {Map<string, object>}
+     * @property {Map<string, object>} shards - Map to store shard configurations.
+     *                                          Key: shardName (string), Value: shardConfig (object).
      */
     this.shards = new Map();
     /**
-     * Map to store read replica connections for each shard.
-     * @type {Map<string, Array<import('better-sqlite3').Database>>}
+     * @property {Map<string, Array<import('better-sqlite3').Database>>} readReplicas - Map to store read replica connections for each shard.
+     *                                                                                 Key: shardName (string), Value: Array of SQLite database connections.
      */
     this.readReplicas = new Map();
     /**
-     * Map to store write connections for each shard.
-     * @type {Map<string, import('better-sqlite3').Database>}
+     * @property {Map<string, import('better-sqlite3').Database>} writeConnections - Map to store write connections for each shard.
+     *                                                                             Key: shardName (string), Value: SQLite database connection.
      */
     this.writeConnections = new Map();
     this.initializeShards();
@@ -93,11 +100,12 @@ class ShardManager {
   }
 
   /**
-   * Determines the appropriate shard name for a given table.
-   * @param {string} table - The name of the database table.
-   * @param {any} [shardingValue=null] - An optional value used for sharding key determination (e.g., user_id).
-   * @returns {string} The name of the shard that contains the specified table.
-   * @throws {Error} If no shard is found for the given table.
+   * @method getShardForTable
+   * @description Determines the appropriate shard name for a given table based on its configuration.
+   * @param {string} table - The name of the database table (e.g., 'users', 'accounts').
+   * @param {any} [shardingValue=null] - An optional value that could be used for advanced sharding key determination (e.g., user_id for consistent hashing), though not currently implemented beyond direct table mapping.
+   * @returns {string} The name of the shard that is configured to contain the specified table.
+   * @throws {Error} If no configured shard is found for the given table, indicating a misconfiguration.
    */
   getShardForTable(table, shardingValue = null) {
     console.log(`ShardManager: Getting shard for table: ${table}`);
@@ -112,10 +120,11 @@ class ShardManager {
   }
 
   /**
-   * Retrieves the write connection for a specific shard.
-   * @param {string} shardName - The name of the shard.
-   * @returns {import('better-sqlite3').Database} The write connection for the specified shard.
-   * @throws {Error} If no write connection is found for the shard.
+   * @method getWriteConnection
+   * @description Retrieves the dedicated write connection for a specific database shard.
+   * @param {string} shardName - The name of the shard (e.g., 'users').
+   * @returns {import('better-sqlite3').Database} The `better-sqlite3` database instance for write operations on the specified shard.
+   * @throws {Error} If no write connection has been established or found for the given shard name.
    */
   getWriteConnection(shardName) {
     console.log(`ShardManager: Getting write connection for shard: ${shardName}`);
@@ -128,10 +137,12 @@ class ShardManager {
   }
 
   /**
-   * Retrieves a read connection for a specific shard, applying a simple round-robin load balancing.
-   * @param {string} shardName - The name of the shard.
-   * @returns {import('better-sqlite3').Database} A read connection for the specified shard.
-   * @throws {Error} If no read replicas are found for the shard.
+   * @method getReadConnection
+   * @description Retrieves a read-only database connection for a specific shard,
+   *              implementing a basic round-robin load balancing mechanism across configured read replicas.
+   * @param {string} shardName - The name of the shard (e.g., 'transactions').
+   * @returns {import('better-sqlite3').Database} A `better-sqlite3` database instance for read operations on the specified shard.
+   * @throws {Error} If no read replicas are configured or found for the given shard name.
    */
   getReadConnection(shardName) {
     console.log(`ShardManager: Getting read connection for shard: ${shardName}`);
@@ -148,12 +159,15 @@ class ShardManager {
   }
 
   /**
-   * Executes a write operation on the appropriate shard.
-   * @param {string} table - The name of the table the operation is targeting.
-   * @param {string} operation - The SQL query to execute.
-   * @param {object} [params={}] - Parameters for the SQL query.
-   * @returns {Promise<any>} The result of the write operation.
-   * @throws {Error} If the write operation fails.
+   * @async
+   * @method executeWrite
+   * @description Executes a SQL write operation (INSERT, UPDATE, DELETE) on the appropriate shard.
+   *              It automatically determines the target shard based on the table name.
+   * @param {string} table - The name of the table the write operation is targeting.
+   * @param {string} sql - The SQL query string to execute.
+   * @param {Array<any>|object} [params={}] - Optional parameters to bind to the SQL query. Can be an array for positional parameters or an object for named parameters.
+   * @returns {Promise<import('better-sqlite3').RunResult>} A Promise that resolves with the result of the SQLite `run` operation (e.g., `lastInsertRowid`, `changes`).
+   * @throws {Error} If the operation fails, including issues with shard lookup, connection, or SQL execution.
    */
   async executeWrite(table, operation, params = {}) {
     const shardName = this.getShardForTable(table);
@@ -171,12 +185,15 @@ class ShardManager {
   }
 
   /**
-   * Executes a read operation on the appropriate shard, leveraging read replicas for load balancing.
-   * @param {string} table - The name of the table the operation is targeting.
-   * @param {string} operation - The SQL query to execute.
-   * @param {object} [params={}] - Parameters for the SQL query.
-   * @returns {Promise<Array<any>>} The results of the read operation.
-   * @throws {Error} If the read operation fails.
+   * @async
+   * @method executeRead
+   * @description Executes a SQL read operation (SELECT) on the appropriate shard,
+   *              utilizing read replicas for load distribution.
+   * @param {string} table - The name of the table the read operation is targeting.
+   * @param {string} sql - The SQL query string to execute.
+   * @param {Array<any>|object} [params={}] - Optional parameters to bind to the SQL query. Can be an array for positional parameters or an object for named parameters.
+   * @returns {Promise<Array<any>>} A Promise that resolves with an array of query results.
+   * @throws {Error} If the operation fails, including issues with shard lookup, connection, or SQL execution.
    */
   async executeRead(table, operation, params = {}) {
     const shardName = this.getShardForTable(table);
@@ -246,7 +263,9 @@ class ShardManager {
   }
 
   /**
-   * Closes all database connections managed by the ShardManager.
+   * @method close
+   * @description Closes all open database connections (write and read replicas) managed by the ShardManager.
+   *              This method should be called to gracefully shut down database connections and release resources.
    */
   close() {
     console.log('ShardManager: Closing all database connections.');
