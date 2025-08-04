@@ -23,7 +23,7 @@ services:
     image: localhost/solfin_backend:latest # Explicitly tag local image
     container_name: solfin_backend
     ports:
-      - "3001:3001"
+      - "3003:3001"
     environment:
       - PORT=3001
       - DATABASE_SERVICE_URL=http://solfin_database:3002 # Link to the database service
@@ -41,7 +41,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - VITE_API_BASE_URL=http://backend:3001 # Point to backend service
+      - VITE_API_BASE_URL=http://backend:3003 # Point to backend service
       - VITE_FRONTEND_PORT=8080
     depends_on:
       - backend
