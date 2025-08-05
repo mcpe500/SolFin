@@ -1,6 +1,9 @@
 # Use an official Bun image as a parent image
 FROM oven/bun:latest AS builder
 
+# Set build argument for API Base URL
+ARG VITE_API_BASE_URL
+
 WORKDIR /app
 
 # Copy package.json and package-lock.json (or yarn.lock/bun.lock)
@@ -15,7 +18,8 @@ COPY . .
 
 # Build the React application
 # This will create the production-ready static files in the 'dist' folder
-RUN bun run build
+# Pass VITE_API_BASE_URL as an environment variable during the build
+RUN VITE_API_BASE_URL=$VITE_API_BASE_URL bun run build
 
 # Stage 2: Serve the application with Nginx
 FROM nginx:alpine
