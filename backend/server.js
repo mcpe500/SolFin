@@ -54,6 +54,7 @@ const buildFastify = async () => {
   fastify.register(require('./routes/transferRoutes'));
   fastify.register(require('./routes/goalRoutes'));
   fastify.register(require('./routes/adminRoutes'));
+  fastify.register(require('./routes/confDataRoutes'));
 
   // Set a global error handler
   fastify.setErrorHandler(async (error, request, reply) => {

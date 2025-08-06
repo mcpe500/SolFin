@@ -25,6 +25,15 @@ SolFin is a personal & family finance planner built with a robust, cross-platfor
 *   [API Specification](03-api/)
 *   [Software Requirement Specification (SRS)](00-overview.md)
 
+*   [Technical Documents](technical/)
+    *   [Frontend Technical Document](technical/frontend.md)
+    *   [Backend Technical Document](technical/backend.md)
+    *   [Database Technical Document](technical/database.md)
+    *   [Frontend-Backend API Contract](technical/api-contract.md)
+    *   [Documentation Plan](documentation-plan.md)
+*   [Detailed Technical Design](detailed-technical-design.md)
+*   [Database Schema Design](database-schema-design.md)
+
 ## Architecture Components
 
 *   **Frontend (Ionic React):** Cross-platform application for Android, iOS, and Web PWA
